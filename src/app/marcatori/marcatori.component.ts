@@ -18,6 +18,7 @@ interface Scorer {
   template: `
     <div class="mar-page">
 
+      <!-- HERO -->
       <div class="mar-hero">
         <div class="mar-hero-bg"></div>
         <div class="mar-hero-inner">
@@ -42,16 +43,19 @@ interface Scorer {
         </div>
       </div>
 
+      <!-- LOADING -->
       <div class="mar-loading" *ngIf="loading">
         <div class="mar-spinner"></div>
         <span>Caricamento marcatori…</span>
       </div>
 
+      <!-- ERROR -->
       <div class="mar-error" *ngIf="error && !loading">
         <i class="fa-solid fa-lock"></i>
         <span>{{ error }}</span>
       </div>
 
+      <!-- PODIO TOP 3 -->
       <div class="mar-podio" *ngIf="!loading && scorers.length >= 3">
         <div class="mar-pod-card second">
           <div class="mar-pod-pos">2°</div>
@@ -77,6 +81,7 @@ interface Scorer {
         </div>
       </div>
 
+      <!-- LISTA COMPLETA -->
       <div class="mar-table-wrap" *ngIf="!loading && scorers.length">
         <div class="mar-thead">
           <div class="mar-th mar-th-pos">#</div>
@@ -116,6 +121,7 @@ interface Scorer {
         </div>
       </div>
 
+      <!-- FOOTER -->
       <div class="mar-footer" *ngIf="!loading">
         <span><i class="fa-solid fa-circle-info"></i> Dati football-data.org</span>
         <button class="mar-refresh-btn" (click)="load()">
@@ -131,6 +137,7 @@ interface Scorer {
 
     .mar-page { font-family:'Barlow',sans-serif; max-width:1060px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
 
+    /* HERO */
     .mar-hero { position:relative; border-radius:16px; overflow:hidden; background:#0a0f1e; }
     .mar-hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse 40% 60% at 100% 20%,rgba(15,52,120,.4) 0%,transparent 55%); pointer-events:none; }
     .mar-hero-inner { position:relative; z-index:1; padding:28px 36px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; }
@@ -145,11 +152,13 @@ interface Scorer {
     .mar-hstat-lbl { font-size:.6rem; font-weight:700; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:1px; margin-top:5px; }
     .mar-hstat-divider { width:1px; height:40px; background:rgba(255,255,255,.1); }
 
+    /* LOADING / ERROR */
     .mar-loading { display:flex; align-items:center; justify-content:center; gap:14px; padding:56px; color:#6b7280; background:#0f172a; border-radius:12px; }
     .mar-spinner { width:28px; height:28px; border:3px solid rgba(255,255,255,.06); border-top-color:#4ade80; border-radius:50%; animation:spin .75s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .mar-error { display:flex; align-items:center; gap:12px; padding:18px 24px; background:#1a0a0a; border:1px solid #7f1d1d; border-radius:12px; color:#fca5a5; font-size:.85rem; font-weight:600; }
 
+    /* PODIO */
     .mar-podio { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
     .mar-pod-card {
       background:#0f172a; border:1px solid rgba(255,255,255,.06);
@@ -169,6 +178,7 @@ interface Scorer {
     .mar-pod-goals span { font-size:.7rem; font-weight:700; color:rgba(255,255,255,.4); }
     .mar-pod-card.first .mar-pod-goals { color:#93c5fd; }
 
+    /* TABELLA */
     .mar-table-wrap { background:#0f172a; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.06); }
     .mar-thead { display:grid; grid-template-columns:44px 1fr 140px 60px 60px 60px 1fr; background:#0a0f1e; border-bottom:1px solid rgba(255,255,255,.07); padding:0 8px; }
     .mar-th { padding:10px 8px; text-align:center; font-size:.58rem; font-weight:800; letter-spacing:1px; color:rgba(255,255,255,.3); text-transform:uppercase; }
@@ -203,6 +213,7 @@ interface Scorer {
     .mar-goals-badge.pos-2 { background:rgba(148,163,184,.15); color:#cbd5e1; }
     .mar-goals-badge.pos-3 { background:rgba(205,127,50,.15); color:#d4a76a; }
 
+    /* barra rendimento */
     .mar-td-bar { padding:0 12px; }
     .mar-bar-wrap { height:5px; background:rgba(255,255,255,.06); border-radius:3px; overflow:hidden; }
     .mar-bar-fill { height:100%; border-radius:3px; background:rgba(255,255,255,.2); transition:width .6s; }
@@ -210,6 +221,7 @@ interface Scorer {
     .mar-bar-fill.pos-2 { background:#64748b; }
     .mar-bar-fill.pos-3 { background:#cd7f32; }
 
+    /* footer */
     .mar-footer { display:flex; justify-content:space-between; align-items:center; padding:6px 4px; font-size:.68rem; color:rgba(255,255,255,.25); font-weight:600; }
     .mar-footer i { margin-right:4px; }
     .mar-refresh-btn { padding:7px 16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; font-size:.72rem; font-weight:700; color:rgba(255,255,255,.5); cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .2s; font-family:'Barlow',sans-serif; }
@@ -217,11 +229,20 @@ interface Scorer {
     .spin { animation:spin .75s linear infinite; }
 
     @media(max-width:700px) {
-      .mar-podio { grid-template-columns:1fr; }
-      .mar-thead { grid-template-columns:44px 1fr 100px 50px 1fr; }
-      .mar-row   { grid-template-columns:44px 1fr 100px 50px 1fr; }
+      .mar-hero-inner { flex-direction:column; gap:12px; padding:20px 16px; }
+      .mar-podio { grid-template-columns:repeat(3,1fr); gap:8px; }
+      .mar-pod-card { padding:12px 8px; }
+      .mar-pod-name { font-size:.68rem; }
+      .mar-pod-goals { font-size:1.6rem; }
+      .mar-thead { grid-template-columns:44px 1fr 80px 44px; }
+      .mar-row   { grid-template-columns:44px 1fr 80px 44px; }
       .mar-th:nth-child(5), .mar-th:nth-child(6),
       .mar-td:nth-child(5), .mar-td:nth-child(6) { display:none; }
+      .mar-bar-wrap { display:none; }
+      .mar-table-wrap { padding:0; }
+    }
+    @media(max-width:400px) {
+      .mar-podio { grid-template-columns:1fr; }
     }
   `]
 })

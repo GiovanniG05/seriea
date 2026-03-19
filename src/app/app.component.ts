@@ -71,9 +71,15 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
 
     .app-main { max-width:1060px; margin:0 auto; padding:24px 20px 48px; }
 
-    @media(max-width:600px) {
-      .app-nav-inner { height:auto; padding:10px; flex-direction:column; gap:10px; }
+    @media(max-width:700px) {
+      .app-nav-inner { padding:0 12px; height:52px; }
+      .app-nav-btn { padding:6px 10px; font-size:.7rem; gap:5px; }
       .app-nav-btn span { display:none; }
+      .app-brand-name { font-size:.9rem; }
+    }
+    @media(max-width:400px) {
+      .app-nav-links { gap:0; }
+      .app-nav-btn { padding:6px 8px; }
     }
   `]
 })

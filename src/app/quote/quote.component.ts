@@ -13,6 +13,7 @@ type MarketTab = 'h2h' | 'totals';
   template: `
     <div class="q-page">
 
+      <!-- HERO -->
       <div class="q-hero">
         <div class="q-hero-bg"></div>
         <div class="q-hero-inner">
@@ -40,6 +41,7 @@ type MarketTab = 'h2h' | 'totals';
         </div>
       </div>
 
+      <!-- MARKET TABS -->
       <div class="q-tabs">
         <button class="q-tab" [class.active]="activeTab==='h2h'" (click)="switchTab('h2h')">
           <i class="fa-solid fa-futbol"></i> Esito Finale 1X2
@@ -49,19 +51,23 @@ type MarketTab = 'h2h' | 'totals';
         </button>
       </div>
 
+      <!-- LOADING -->
       <div class="q-loading" *ngIf="loading">
         <div class="q-spinner"></div>
         <span>Caricamento quote…</span>
       </div>
 
+      <!-- ERROR -->
       <div class="q-error" *ngIf="error && !loading">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <span>{{ error }}</span>
       </div>
 
+      <!-- PARTITE -->
       <div class="q-list" *ngIf="!loading && matches.length">
         <div class="q-match" *ngFor="let m of matches">
 
+          <!-- header partita -->
           <div class="q-match-header">
             <div class="q-match-info">
               <span class="q-match-date">
@@ -73,12 +79,14 @@ type MarketTab = 'h2h' | 'totals';
             <span class="q-bookmaker-name">{{ m.bookmakers[0]?.title ?? '' }}</span>
           </div>
 
+          <!-- squadre -->
           <div class="q-match-teams">
             <span class="q-team-name">{{ m.home_team }}</span>
             <span class="q-vs-sep">–</span>
             <span class="q-team-name">{{ m.away_team }}</span>
           </div>
 
+          <!-- quote 1X2 -->
           <div class="q-outcomes" *ngIf="activeTab==='h2h'">
             <button class="q-odd-btn"
               [class.selected]="isInCart(m.id, m.home_team)"
@@ -103,6 +111,7 @@ type MarketTab = 'h2h' | 'totals';
             </button>
           </div>
 
+          <!-- quote Over/Under -->
           <div class="q-outcomes" *ngIf="activeTab==='totals'">
             <button class="q-odd-btn"
               *ngFor="let o of getTotals(m)"
@@ -118,11 +127,13 @@ type MarketTab = 'h2h' | 'totals';
         </div>
       </div>
 
+      <!-- EMPTY -->
       <div class="q-empty" *ngIf="!loading && !error && matches.length === 0">
         <i class="fa-solid fa-calendar-xmark"></i>
         <div>Nessuna partita disponibile</div>
       </div>
 
+      <!-- FOOTER -->
       <div class="q-footer" *ngIf="!loading">
         <span><i class="fa-solid fa-bolt"></i> The Odds API · dati in tempo reale</span>
         <button class="q-refresh-btn" (click)="load()">
@@ -130,6 +141,7 @@ type MarketTab = 'h2h' | 'totals';
         </button>
       </div>
 
+      <!-- CARRELLO -->
       <div class="q-cart" *ngIf="cart.length > 0">
         <div class="q-cart-header">
           <span><i class="fa-solid fa-cart-shopping"></i> Schedina ({{ cart.length }})</span>
@@ -166,8 +178,8 @@ type MarketTab = 'h2h' | 'totals';
             <span>Vincita potenziale</span>
             <span class="q-win-val">€ {{ (stake * +totalOdd).toFixed(2) }}</span>
           </div>
-          <a class="q-bet-cta" href="https://www.snai.it/scommesse/calcio/italia/serie-a" target="_blank">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Vai su SNAI
+          <a class="q-bet-cta" href="https://landing.sisal.it/invita-amici/?mppartner=3835263332262626302654524143&omtrcid=10399233_DIR" target="_blank" rel="noreferrer noopener">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Vai su Sisal
           </a>
         </div>
       </div>
@@ -180,6 +192,7 @@ type MarketTab = 'h2h' | 'totals';
 
     .q-page { font-family:'Barlow',sans-serif; max-width:1060px; margin:0 auto; display:flex; flex-direction:column; gap:14px; padding-bottom:20px; }
 
+    /* HERO */
     .q-hero { position:relative; border-radius:16px; overflow:hidden; background:#0a0f1e; }
     .q-hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse 40% 60% at 100% 20%,rgba(15,52,120,.4) 0%,transparent 55%); pointer-events:none; }
     .q-hero-inner { position:relative; z-index:1; padding:28px 36px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; }
@@ -193,12 +206,14 @@ type MarketTab = 'h2h' | 'totals';
     .q-hstat-lbl { font-size:.6rem; font-weight:700; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
     .q-hstat-divider { width:1px; height:36px; background:rgba(255,255,255,.1); }
 
+    /* TABS */
     .q-tabs { display:flex; gap:6px; background:#0a0f1e; border-radius:12px; padding:6px; }
     .q-tab { flex:1; padding:10px 16px; border:none; border-radius:8px; background:transparent; color:rgba(255,255,255,.4); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .15s; font-family:'Barlow',sans-serif; text-transform:uppercase; letter-spacing:.3px; }
     .q-tab i { font-size:.72rem; }
     .q-tab:hover:not(.active) { background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); }
     .q-tab.active { background:rgba(59,130,246,.2); color:#93c5fd; border:1px solid rgba(59,130,246,.3); }
 
+    /* LOADING / ERROR / EMPTY */
     .q-loading { display:flex; align-items:center; justify-content:center; gap:14px; padding:56px; color:#6b7280; background:#0f172a; border-radius:12px; }
     .q-spinner { width:28px; height:28px; border:3px solid rgba(255,255,255,.06); border-top-color:#4ade80; border-radius:50%; animation:spin .75s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -206,6 +221,7 @@ type MarketTab = 'h2h' | 'totals';
     .q-empty { text-align:center; padding:56px; color:rgba(255,255,255,.2); background:#0f172a; border-radius:12px; }
     .q-empty i { font-size:2.5rem; display:block; margin-bottom:12px; opacity:.3; }
 
+    /* LISTA PARTITE */
     .q-list { display:flex; flex-direction:column; gap:8px; }
     .q-match { background:#0f172a; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:18px 20px; transition:border-color .15s; }
     .q-match:hover { border-color:rgba(255,255,255,.1); }
@@ -221,6 +237,7 @@ type MarketTab = 'h2h' | 'totals';
     .q-team-name { font-size:.95rem; font-weight:800; color:white; }
     .q-vs-sep { font-size:.7rem; color:rgba(255,255,255,.2); font-weight:900; }
 
+    /* QUOTE BUTTONS */
     .q-outcomes { display:flex; gap:8px; flex-wrap:wrap; }
     .q-odd-btn {
       flex:1; min-width:120px;
@@ -237,11 +254,13 @@ type MarketTab = 'h2h' | 'totals';
     .q-odd-btn.selected .q-odd-price { color:#4ade80; }
     .q-no-market { font-size:.72rem; color:rgba(255,255,255,.2); padding:12px; }
 
+    /* FOOTER */
     .q-footer { display:flex; justify-content:space-between; align-items:center; padding:6px 4px; font-size:.68rem; color:rgba(255,255,255,.25); font-weight:600; }
     .q-refresh-btn { padding:7px 16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; font-size:.72rem; font-weight:700; color:rgba(255,255,255,.5); cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .2s; font-family:'Barlow',sans-serif; }
     .q-refresh-btn:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); color:white; }
     .spin { animation:spin .75s linear infinite; }
 
+    /* CARRELLO */
     .q-cart {
       background:#0d1117; border:1px solid rgba(255,255,255,.1);
       border-radius:16px;
@@ -285,9 +304,17 @@ type MarketTab = 'h2h' | 'totals';
     .q-bet-cta:hover { background:linear-gradient(135deg,#15803d,#0a3d1c); box-shadow:0 6px 16px rgba(22,163,74,.4); }
 
     @media(max-width:700px) {
+      .q-hero-inner { flex-direction:column; gap:12px; padding:20px 16px; }
+      .q-hero-stats { display:none; }
+      .q-match-header { flex-direction:column; align-items:flex-start; gap:4px; }
+      .q-teams { font-size:.78rem; }
+      .q-outcomes { flex-direction:row; flex-wrap:wrap; gap:6px; }
+      .q-odd-btn { flex:1; min-width:80px; padding:8px 6px; }
+      .q-odd-desc { font-size:.55rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70px; }
+      .q-totals { flex-wrap:wrap; }
       .q-cart-footer { grid-template-columns:1fr 1fr; gap:10px; }
       .q-bet-cta { grid-column:1/-1; justify-content:center; }
-      .q-hero-stats { display:none; }
+      .q-cart-item { flex-direction:column; gap:4px; }
     }
   `]
 })
@@ -342,8 +369,10 @@ export class QuoteComponent implements OnInit {
   toggleCart(m: MatchOdds, market: string, label: string, odd: number, bookmaker: string) {
     const existing = this.cart.findIndex(i => i.matchId === m.id && i.market === market && i.label === label);
     if (existing >= 0) {
+      // deseleziona
       this.cart.splice(existing, 1);
     } else {
+      // rimuovi selezione precedente per stessa partita + stesso mercato
       this.cart = this.cart.filter(i => !(i.matchId === m.id && i.market === market));
       this.cart.push({ matchId: m.id, home: m.home_team, away: m.away_team, market, label, odd, bookmaker });
     }

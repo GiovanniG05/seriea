@@ -12,6 +12,7 @@ import { CompetitionService } from '../services/competition.service';
   template: `
     <div class="cl-page">
 
+      <!-- HERO -->
       <div class="cl-hero">
         <div class="cl-hero-bg"></div>
         <div class="cl-hero-content">
@@ -41,16 +42,19 @@ import { CompetitionService } from '../services/competition.service';
         </div>
       </div>
 
+      <!-- LOADING -->
       <div class="cl-loading" *ngIf="loading">
         <div class="cl-spinner"></div>
         <span>Caricamento classifica…</span>
       </div>
 
+      <!-- ERROR -->
       <div class="cl-error" *ngIf="error && !loading">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <div>{{ error }}</div>
       </div>
 
+      <!-- LEGENDA -->
       <div class="cl-legenda" *ngIf="!loading && standings.length">
         <div class="cl-leg"><span class="cl-leg-bar champions"></span> Champions League</div>
         <div class="cl-leg"><span class="cl-leg-bar europa"></span> Europa League</div>
@@ -58,8 +62,10 @@ import { CompetitionService } from '../services/competition.service';
         <div class="cl-leg"><span class="cl-leg-bar retro"></span> Retrocessione</div>
       </div>
 
+      <!-- TABELLA -->
       <div class="cl-table-wrap" *ngIf="!loading && standings.length">
         <div class="cl-thead">
+          <div class="cl-th-bar"></div>
           <div class="cl-th cl-th-pos">#</div>
           <div class="cl-th cl-th-team">Squadra</div>
           <div class="cl-th">PG</div>
@@ -99,12 +105,14 @@ import { CompetitionService } from '../services/competition.service';
         </div>
       </div>
 
+      <!-- SCHEDA SQUADRA -->
       <app-squadra
         *ngIf="selectedTeamId"
         [teamId]="selectedTeamId"
         (close)="selectedTeamId = null">
       </app-squadra>
 
+      <!-- FOOTER -->
       <div class="cl-footer" *ngIf="!loading && standings.length">
         <span>Dati aggiornati · football-data.org</span>
         <button class="cl-btn-refresh" (click)="load()">
@@ -146,6 +154,7 @@ import { CompetitionService } from '../services/competition.service';
 
     .cl-table-wrap { background:#0f172a; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.06); }
     .cl-thead { display:grid; grid-template-columns:4px 44px 1fr 44px 44px 44px 44px 44px 44px 52px 58px; background:#0a0f1e; border-bottom:1px solid rgba(255,255,255,.07); padding:0 8px; }
+    .cl-th-bar { width:4px; }
     .cl-th { padding:10px 6px; text-align:center; font-size:.58rem; font-weight:800; letter-spacing:1px; color:rgba(255,255,255,.3); text-transform:uppercase; }
     .cl-th-team { text-align:left; padding-left:12px; }
     .cl-th-pts { color:#4ade80 !important; }
@@ -201,10 +210,16 @@ import { CompetitionService } from '../services/competition.service';
     .spin { animation:spin .75s linear infinite; }
 
     @media(max-width:700px) {
-      .cl-thead { grid-template-columns:4px 44px 1fr 44px 44px 58px; }
-      .cl-row   { grid-template-columns:4px 44px 1fr 44px 44px 58px; }
-      .cl-th:nth-child(n+6):not(:last-child):not(:nth-child(10)),
-      .cl-td:nth-child(n+6):not(:last-child):not(:nth-child(10)) { display:none; }
+      .cl-thead { grid-template-columns:4px 32px 1fr 44px 46px; }
+      .cl-row   { grid-template-columns:4px 32px 1fr 44px 46px; }
+      .cl-th:nth-child(4),.cl-th:nth-child(5),.cl-th:nth-child(6),
+      .cl-th:nth-child(7),.cl-th:nth-child(8),.cl-th:nth-child(9),
+      .cl-td:nth-child(4),.cl-td:nth-child(5),.cl-td:nth-child(6),
+      .cl-td:nth-child(7),.cl-td:nth-child(8),.cl-td:nth-child(9) { display:none; }
+      .cl-hero-kpis { flex-wrap:wrap; gap:6px; }
+      .cl-kpi { min-width:70px; padding:8px 12px; }
+      .cl-hero-content { flex-direction:column; gap:16px; }
+      .cl-hero-title { font-size:1.4rem; white-space:normal; }
     }
   `]
 })
@@ -234,11 +249,13 @@ export class ClassificaComponent implements OnInit {
       this.loading = false;
       return;
     }
+    // CL/EL/ECL in fase a eliminazione diretta non hanno classifica
     this.footballService.getStandings(this.comp.code).subscribe({
       next: (res) => {
         const total = res.standings.find(s => s.type === 'TOTAL');
         this.standings = total?.table ?? [];
         if (!this.standings.length) {
+          // prova con HOME o AWAY (fase a gironi)
           const any = res.standings[0];
           this.standings = any?.table ?? [];
         }

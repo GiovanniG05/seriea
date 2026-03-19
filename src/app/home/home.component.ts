@@ -10,6 +10,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
   template: `
     <div class="h-page">
 
+      <!-- ══ HERO ══ -->
       <div class="h-hero">
         <div class="h-hero-bg"></div>
         <div class="h-hero-inner">
@@ -40,8 +41,10 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
         </div>
       </div>
 
+      <!-- ══ SELETTORE DIVISO ══ -->
       <div class="h-selector">
 
+        <!-- Coppe -->
         <div class="h-sel-group">
           <div class="h-sel-label">
             <i class="fa-solid fa-star"></i> Coppe Europee
@@ -63,6 +66,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
 
         <div class="h-sel-divider"></div>
 
+        <!-- Campionati -->
         <div class="h-sel-group">
           <div class="h-sel-label">
             <i class="fa-solid fa-shield-halved"></i> Campionati
@@ -81,6 +85,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
 
       </div>
 
+      <!-- ══ LOADING ══ -->
       <div class="h-loading" *ngIf="loading">
         <div class="h-spinner"></div>
         <span>Caricamento {{ selected.name }}…</span>
@@ -88,6 +93,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
 
       <ng-container *ngIf="!loading">
 
+        <!-- ══ GRID ══ -->
         <div class="h-grid" *ngIf="standings.length || nextMatches.length">
 
           <div class="h-card" *ngIf="standings.length && !selected.resultsOnly">
@@ -117,7 +123,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
                 <div class="h-match-teams">
                   <img [src]="m.homeTeam.crest" class="h-match-crest" (error)="onImgError($event)">
                   <span class="h-match-name">{{ m.homeTeam.shortName }}</span>
-                  <span class="h-match-vs">-</span>
+                  <span class="h-match-vs">–</span>
                   <span class="h-match-name">{{ m.awayTeam.shortName }}</span>
                   <img [src]="m.awayTeam.crest" class="h-match-crest" (error)="onImgError($event)">
                 </div>
@@ -127,6 +133,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
 
         </div>
 
+        <!-- ══ ESPLORA ══ -->
         <div class="h-explore-wrap">
           <div class="h-sel-label">Esplora</div>
           <div class="h-explore-grid">
@@ -192,6 +199,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     *, *::before, *::after { box-sizing: border-box; }
     .h-page { font-family:'Barlow',sans-serif; display:flex; flex-direction:column; gap:16px; }
 
+    /* HERO */
     .h-hero { position:relative; border-radius:18px; overflow:hidden; background:#060d18; }
     .h-hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse 80% 100% at -10% 60%,rgba(15,52,120,.6) 0%,transparent 55%),radial-gradient(ellipse 40% 50% at 110% 10%,rgba(10,60,30,.35) 0%,transparent 50%); pointer-events:none; }
     .h-hero-inner { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; padding:32px 40px; gap:32px; flex-wrap:wrap; }
@@ -209,6 +217,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     .h-kpi-lbl { font-size:.55rem; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:.8px; margin-top:2px; }
     .h-kpi-sep { width:1px; height:32px; background:rgba(255,255,255,.1); }
 
+    /* SELETTORE */
     .h-selector { background:#0a0f1e; border-radius:14px; padding:16px 20px; display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap; }
     .h-sel-group { display:flex; flex-direction:column; gap:8px; }
     .h-sel-label { font-size:.6rem; font-weight:800; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:1.5px; display:flex; align-items:center; gap:6px; }
@@ -230,12 +239,15 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     .h-sel-btn.active i { color:var(--tc); }
     .h-sel-divider { width:1px; background:rgba(255,255,255,.07); align-self:stretch; margin:0 4px; }
 
+    /* LOADING */
     .h-loading { display:flex; align-items:center; justify-content:center; gap:14px; padding:48px; color:#6b7280; background:#0f172a; border-radius:12px; }
     .h-spinner { width:26px; height:26px; border:3px solid rgba(255,255,255,.06); border-top-color:#4ade80; border-radius:50%; animation:spin .75s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
 
+    /* GRID */
     .h-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 
+    /* CARD */
     .h-card { background:#0f172a; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:18px 20px; }
     .h-card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
     .h-card-head > span { font-size:.78rem; font-weight:800; color:white; display:flex; align-items:center; gap:7px; }
@@ -243,6 +255,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     .h-card-link { background:none; border:none; color:rgba(255,255,255,.3); font-size:.65rem; font-weight:700; cursor:pointer; font-family:'Barlow',sans-serif; transition:color .15s; }
     .h-card-link:hover { color:#4ade80; }
 
+    /* standing */
     .h-standing-list { display:flex; flex-direction:column; gap:5px; }
     .h-standing-row { display:flex; align-items:center; gap:8px; padding:5px 7px; border-radius:7px; transition:background .1s; }
     .h-standing-row:hover { background:rgba(255,255,255,.03); }
@@ -255,6 +268,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     .h-s-pg { font-size:.62rem; color:rgba(255,255,255,.2); font-weight:600; }
     .h-s-pts { font-family:'JetBrains Mono',monospace; font-size:.85rem; font-weight:800; color:white; min-width:24px; text-align:right; }
 
+    /* matches */
     .h-match-list { display:flex; flex-direction:column; gap:9px; }
     .h-match { display:flex; align-items:center; gap:10px; padding-bottom:9px; border-bottom:1px solid rgba(255,255,255,.04); }
     .h-match:last-child { border-bottom:none; padding-bottom:0; }
@@ -264,6 +278,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     .h-match-name { font-size:.75rem; font-weight:700; color:rgba(255,255,255,.7); }
     .h-match-vs { font-size:.6rem; color:rgba(255,255,255,.2); font-weight:900; }
 
+    /* esplora */
     .h-explore-wrap { display:flex; flex-direction:column; gap:8px; }
     .h-explore-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
     .h-explore-card { background:#0f172a; border:1px solid rgba(255,255,255,.06); border-radius:13px; padding:16px 18px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:all .15s; }
@@ -274,15 +289,32 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     .h-exp-desc { font-size:.68rem; color:rgba(255,255,255,.35); }
     .h-exp-arr { color:rgba(255,255,255,.2); font-size:.7rem; }
 
+    /* footer */
     .h-footer { display:flex; justify-content:space-between; font-size:.62rem; color:rgba(255,255,255,.2); font-weight:600; padding:4px 0; }
 
-    @media(max-width:800px) {
+    @media(max-width:900px) {
       .h-grid { grid-template-columns:1fr; }
+      .h-explore-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:600px) {
       .h-explore-grid { grid-template-columns:1fr; }
-      .h-hero-inner { flex-direction:column; align-items:flex-start; }
-      .h-selector { flex-direction:column; }
-      .h-sel-divider { width:100%; height:1px; margin:4px 0; }
-      .h-title { font-size:2rem; }
+      .h-hero-inner { flex-direction:column; align-items:flex-start; gap:16px; padding:24px 20px; }
+      .h-hero-kpis { width:100%; justify-content:space-between; padding:12px 16px; }
+      .h-kpi { padding:0 10px; }
+      .h-kpi-num { font-size:1.2rem; }
+      .h-title { font-size:1.7rem; }
+      .h-desc { font-size:.75rem; }
+      .h-selector { flex-direction:column; gap:12px; padding:14px 16px; }
+      .h-sel-divider { width:100%; height:1px; margin:2px 0; }
+      .h-sel-btns { gap:5px; }
+      .h-sel-btn { padding:7px 10px; font-size:.72rem; }
+      .h-card { padding:14px 16px; }
+      .h-s-name { font-size:.72rem; }
+      .h-match-name { font-size:.68rem; }
+      .h-explore-card { padding:12px 14px; }
+      .h-exp-name { font-size:.8rem; }
+      .h-exp-desc { font-size:.62rem; }
+      .h-exp-icon { width:36px; height:36px; font-size:.85rem; }
     }
   `]
 })
