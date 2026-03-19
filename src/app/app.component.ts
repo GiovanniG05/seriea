@@ -1,213 +1,82 @@
 import { Component } from '@angular/core';
-import { JsonPipe } from '@angular/common';
-import {
-  UiButtonComponent,
-  UiFormBuilderComponent,
-  UiFormSchema,
-  UiFormData,
-  UiFormValidationState,
-} from '@gnggln/ng-ui-system';
+import { CommonModule } from '@angular/common';
+import { HomeComponent } from './home/home.component';
+import { ClassificaComponent } from './classifica/classifica.component';
+import { RisultatiComponent } from './risultati/risultati.component';
+import { MarcatoriComponent } from './marcatori/marcatori.component';
+import { QuoteComponent } from './quote/quote.component';
 
-// ─── Demo Form Schema ────────────────────────────────────────────
-const DEMO_SCHEMA: UiFormSchema = {
-  id: 'starter-demo',
-  title: 'Demo Form',
-  description: 'Esempio di form generato con @links/ng-ui-system.',
-  sections: [
-    {
-      id: 'anagrafica',
-      title: 'Anagrafica',
-      fields: [
-        { key: 'nome', type: 'text', label: 'Nome', required: true,
-          validation: [{ type: 'required', message: 'Il nome è obbligatorio' }],
-          layout: { columns: 6 } },
-        { key: 'cognome', type: 'text', label: 'Cognome', required: true,
-          validation: [{ type: 'required', message: 'Il cognome è obbligatorio' }],
-          layout: { columns: 6 } },
-        { key: 'email', type: 'email', label: 'Email',
-          validation: [
-            { type: 'required', message: 'Email obbligatoria' },
-            { type: 'email', message: 'Formato email non valido' },
-          ],
-          layout: { columns: 6 } },
-        { key: 'telefono', type: 'text', label: 'Telefono',
-          validation: [
-            { type: 'pattern', value: '^(\\+39)?\\s?3[0-9]{2}\\s?[0-9]{6,7}$', message: 'Formato: +39 3XX XXXXXXX' },
-          ],
-          placeholder: '+39 333 1234567',
-          layout: { columns: 6 } },
-      ],
-    },
-    {
-      id: 'dettagli',
-      title: 'Dettagli',
-      fields: [
-        {
-          key: 'ruolo', type: 'select', label: 'Ruolo',
-          options: [
-            { value: 'dev', label: 'Sviluppatore' },
-            { value: 'designer', label: 'Designer' },
-            { value: 'pm', label: 'Project Manager' },
-            { value: 'qa', label: 'QA Engineer' },
-          ],
-          layout: { columns: 6 },
-        },
-        { key: 'esperienza', type: 'number', label: 'Anni di esperienza',
-          validation: [
-            { type: 'min', value: 0, message: 'Non può essere negativo' },
-            { type: 'max', value: 50, message: 'Valore massimo 50' },
-          ],
-          layout: { columns: 6 } },
-        {
-          key: 'competenze', type: 'multiselect', label: 'Competenze',
-          allowSelectAll: true,
-          options: [
-            { value: 'angular', label: 'Angular' },
-            { value: 'react', label: 'React' },
-            { value: 'vue', label: 'Vue' },
-            { value: 'node', label: 'Node.js' },
-            { value: 'python', label: 'Python' },
-          ],
-          layout: { columns: 12 },
-        },
-        { key: 'data-inizio', type: 'date', label: 'Data di inizio',
-          layout: { columns: 6 } },
-        {
-          key: 'newsletter', type: 'checkbox', label: 'Iscrizione alla newsletter',
-          appearance: { style: 'switch' },
-          layout: { columns: 6 },
-        },
-        { key: 'note', type: 'textarea', label: 'Note aggiuntive',
-          placeholder: 'Inserisci eventuali note...',
-          validation: [{ type: 'maxLength', value: 500, message: 'Massimo 500 caratteri' }],
-          layout: { columns: 12 } },
-      ],
-    },
-  ],
-  config: {
-    columns: 12,
-    showButtons: true,
-    buttonLabels: { submit: 'Invia', reset: 'Annulla' },
-  },
-};
+type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [UiButtonComponent, UiFormBuilderComponent, JsonPipe],
+  imports: [CommonModule, HomeComponent, ClassificaComponent, RisultatiComponent, MarcatoriComponent, QuoteComponent],
   template: `
-    <main class="app-main">
-      <header class="app-header">
-        <h1>ng-starter</h1>
-        <p>Template pre-configurato con <strong>&#64;links/ng-ui-system</strong></p>
-      </header>
+    <div class="app-shell">
 
-      <!-- Button Demo -->
-      <section class="demo-section">
-        <h2>Button</h2>
-        <div class="button-row">
-          <ui-button label="Primary" variant="primary"></ui-button>
-          <ui-button label="Accent" variant="accent"></ui-button>
-          <ui-button label="Outline" variant="outline"></ui-button>
-          <ui-button label="Ghost" variant="ghost"></ui-button>
-          <ui-button label="Warn" variant="warn"></ui-button>
+      <nav class="app-nav">
+        <div class="app-nav-inner">
+          <div class="app-brand" (click)="view='home'" style="cursor:pointer">
+            <span class="app-brand-name">Serie<strong> A</strong></span>
+          </div>
+          <div class="app-nav-links">
+            <button class="app-nav-btn" [class.active]="view==='home'" (click)="view='home'">
+              <i class="fa-solid fa-house"></i><span>Home</span>
+            </button>
+            <button class="app-nav-btn" [class.active]="view==='classifica'" (click)="view='classifica'">
+              <i class="fa-solid fa-list-ol"></i><span>Classifica</span>
+            </button>
+            <button class="app-nav-btn" [class.active]="view==='risultati'" (click)="view='risultati'">
+              <i class="fa-solid fa-calendar-days"></i><span>Risultati & Quote</span>
+            </button>
+            <button class="app-nav-btn" [class.active]="view==='marcatori'" (click)="view='marcatori'">
+              <i class="fa-solid fa-shoe-prints"></i><span>Marcatori</span>
+            </button>
+            <button class="app-nav-btn" [class.active]="view==='quote'" (click)="view='quote'">
+              <i class="fa-solid fa-percent"></i><span>Quote</span>
+            </button>
+          </div>
         </div>
-      </section>
+      </nav>
 
-      <!-- Form Builder Demo -->
-      <section class="demo-section">
-        <h2>Form Builder</h2>
-        <ui-form-builder
-          [schema]="schema"
-          [initialData]="initialData"
-          (formSubmit)="onSubmit($event)"
-          (valueChange)="onValueChange($event)"
-          (validationChange)="onValidationChange($event)"
-        />
-      </section>
+      <main class="app-main">
+        <app-home      *ngIf="view==='home'"       (navigateTo)="view=$any($event)" />
+        <app-classifica *ngIf="view==='classifica'" />
+        <app-risultati  *ngIf="view==='risultati'" />
+        <app-marcatori  *ngIf="view==='marcatori'" />
+        <app-quote      *ngIf="view==='quote'" />
+      </main>
 
-      <!-- Output -->
-      @if (lastSubmit) {
-        <section class="demo-section output-section">
-          <h2>Ultimo Submit</h2>
-          <pre class="output-json">{{ lastSubmit | json }}</pre>
-        </section>
-      }
-    </main>
+    </div>
   `,
   styles: [`
-    .app-main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
+    @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&display=swap');
+    * { box-sizing:border-box; margin:0; padding:0; }
+
+    .app-shell { min-height:100vh; background:#070d1a; font-family:'Barlow',sans-serif; }
+
+    .app-nav { background:#0a0f1e; border-bottom:1px solid rgba(255,255,255,.07); position:sticky; top:0; z-index:100; }
+    .app-nav-inner { max-width:1060px; margin:0 auto; padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:58px; }
+
+    .app-brand { display:flex; align-items:center; }
+    .app-brand-name { font-size:1.05rem; font-weight:700; color:rgba(255,255,255,.7); letter-spacing:-.3px; }
+    .app-brand-name strong { color:#4ade80; font-weight:900; }
+
+    .app-nav-links { display:flex; gap:2px; }
+    .app-nav-btn { position:relative; padding:7px 14px; border:1px solid transparent; border-radius:8px; background:transparent; color:rgba(255,255,255,.4); font-size:.8rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all .15s; font-family:'Barlow',sans-serif; text-transform:uppercase; letter-spacing:.3px; }
+    .app-nav-btn i { font-size:.75rem; }
+    .app-nav-btn:hover:not(.active) { background:rgba(255,255,255,.07); color:white; }
+    .app-nav-btn.active { background:rgba(74,222,128,.12); color:#4ade80; border:1px solid rgba(74,222,128,.2); }
+
+    .app-main { max-width:1060px; margin:0 auto; padding:24px 20px 48px; }
+
+    @media(max-width:600px) {
+      .app-nav-inner { height:auto; padding:10px; flex-direction:column; gap:10px; }
+      .app-nav-btn span { display:none; }
     }
-    .app-header {
-      margin-bottom: 2.5rem;
-      text-align: center;
-    }
-    .app-header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--ui-color-primary);
-      margin: 0 0 0.5rem;
-    }
-    .app-header p {
-      color: var(--ui-color-text-secondary);
-      margin: 0;
-    }
-    .demo-section {
-      background: var(--ui-color-surface);
-      border: 1px solid var(--ui-color-border);
-      border-radius: var(--ui-radius-lg);
-      padding: 2rem;
-      margin-bottom: 1.5rem;
-    }
-    .demo-section h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 0 0 1.5rem;
-      color: var(--ui-color-text);
-    }
-    .button-row {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    .output-section {
-      background: var(--ui-color-bg-muted);
-    }
-    .output-json {
-      background: #1e293b;
-      color: #e2e8f0;
-      padding: 1rem;
-      border-radius: var(--ui-radius-md);
-      font-size: 0.75rem;
-      overflow-x: auto;
-      max-height: 300px;
-      line-height: 1.4;
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-  `],
+  `]
 })
 export class AppComponent {
-  schema = DEMO_SCHEMA;
-  initialData: UiFormData = { nome: 'Mario', cognome: 'Rossi', email: 'mario.rossi@example.it' };
-
-  lastSubmit: UiFormData | null = null;
-  lastValidation: UiFormValidationState | null = null;
-
-  onSubmit(data: UiFormData): void {
-    this.lastSubmit = data;
-    console.log('[ng-starter] Form submitted:', data);
-  }
-
-  onValueChange(data: UiFormData): void {
-    // Live value tracking (optional)
-  }
-
-  onValidationChange(state: UiFormValidationState): void {
-    this.lastValidation = state;
-  }
+  view: View = 'home';
 }
