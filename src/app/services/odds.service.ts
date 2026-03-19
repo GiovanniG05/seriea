@@ -42,7 +42,6 @@ export interface CartItem {
   bookmaker: string;
 }
 
-// Chiavi sport verificate con l'API
 const SPORT_KEYS: Record<string, string> = {
   SA:  'soccer_italy_serie_a',
   PL:  'soccer_epl',
@@ -85,14 +84,12 @@ export class OddsService {
     return this.fetchMarket(competitionCode, market);
   }
 
-  // Carica h2h + totals e li unisce per id — senza duplicati
   getAllMarkets(competitionCode = 'SA'): Observable<MatchOdds[]> {
     return forkJoin({
       h2h:    this.fetchMarket(competitionCode, 'h2h'),
       totals: this.fetchMarket(competitionCode, 'totals'),
     }).pipe(
       map(({ h2h, totals }) => {
-        // Deduplication per id
         const seen = new Set<string>();
         const unique = h2h.filter(m => {
           if (seen.has(m.id)) return false;
@@ -100,13 +97,11 @@ export class OddsService {
           return true;
         });
 
-        // Merge totals market into h2h matches
         return unique.map(match => {
           const totalsMatch = totals.find(t => t.id === match.id);
           if (totalsMatch && match.bookmakers[0]) {
             const totalsMarket = totalsMatch.bookmakers[0]?.markets.find(mk => mk.key === 'totals');
             if (totalsMarket) {
-              // Evita duplicati anche nei markets
               const alreadyHas = match.bookmakers[0].markets.some(mk => mk.key === 'totals');
               if (!alreadyHas) match.bookmakers[0].markets.push(totalsMarket);
             }
@@ -117,7 +112,6 @@ export class OddsService {
     );
   }
 
-  // Alias per retrocompatibilità
   getSerieAOdds(market = 'h2h'): Observable<MatchOdds[]> {
     return this.fetchMarket('SA', market);
   }

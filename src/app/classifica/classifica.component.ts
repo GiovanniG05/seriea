@@ -12,7 +12,6 @@ import { CompetitionService } from '../services/competition.service';
   template: `
     <div class="cl-page">
 
-      <!-- HERO -->
       <div class="cl-hero">
         <div class="cl-hero-bg"></div>
         <div class="cl-hero-content">
@@ -42,19 +41,16 @@ import { CompetitionService } from '../services/competition.service';
         </div>
       </div>
 
-      <!-- LOADING -->
       <div class="cl-loading" *ngIf="loading">
         <div class="cl-spinner"></div>
         <span>Caricamento classifica…</span>
       </div>
 
-      <!-- ERROR -->
       <div class="cl-error" *ngIf="error && !loading">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <div>{{ error }}</div>
       </div>
 
-      <!-- LEGENDA -->
       <div class="cl-legenda" *ngIf="!loading && standings.length">
         <div class="cl-leg"><span class="cl-leg-bar champions"></span> Champions League</div>
         <div class="cl-leg"><span class="cl-leg-bar europa"></span> Europa League</div>
@@ -62,7 +58,6 @@ import { CompetitionService } from '../services/competition.service';
         <div class="cl-leg"><span class="cl-leg-bar retro"></span> Retrocessione</div>
       </div>
 
-      <!-- TABELLA -->
       <div class="cl-table-wrap" *ngIf="!loading && standings.length">
         <div class="cl-thead">
           <div class="cl-th cl-th-pos">#</div>
@@ -104,14 +99,12 @@ import { CompetitionService } from '../services/competition.service';
         </div>
       </div>
 
-      <!-- SCHEDA SQUADRA -->
       <app-squadra
         *ngIf="selectedTeamId"
         [teamId]="selectedTeamId"
         (close)="selectedTeamId = null">
       </app-squadra>
 
-      <!-- FOOTER -->
       <div class="cl-footer" *ngIf="!loading && standings.length">
         <span>Dati aggiornati · football-data.org</span>
         <button class="cl-btn-refresh" (click)="load()">
@@ -241,13 +234,11 @@ export class ClassificaComponent implements OnInit {
       this.loading = false;
       return;
     }
-    // CL/EL/ECL in fase a eliminazione diretta non hanno classifica
     this.footballService.getStandings(this.comp.code).subscribe({
       next: (res) => {
         const total = res.standings.find(s => s.type === 'TOTAL');
         this.standings = total?.table ?? [];
         if (!this.standings.length) {
-          // prova con HOME o AWAY (fase a gironi)
           const any = res.standings[0];
           this.standings = any?.table ?? [];
         }

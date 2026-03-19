@@ -7,8 +7,8 @@ export interface Competition {
   flag: string;
   color: string;
   type: 'league' | 'cup';
-  resultsOnly?: boolean; // true = no classifica/marcatori
-  disabled?: boolean;    // true = piano a pagamento richiesto
+  resultsOnly?: boolean; 
+  disabled?: boolean;    
 }
 
 export const COMPETITIONS: Competition[] = [
