@@ -18,7 +18,7 @@ type MarketTab = 'h2h' | 'totals';
         <div class="q-hero-bg"></div>
         <div class="q-hero-inner">
           <div class="q-hero-left">
-            <div class="q-eyebrow">THE ODDS API · <i class="fa-solid" [class]="comp.flag" [style.color]="comp.color"></i> {{ comp.name }}</div>
+            <div class="q-eyebrow"><img [src]="comp.emblem" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:4px"> THE ODDS API · {{ comp.name }}</div>
             <h1 class="q-hero-title">Scommesse <span>Live</span></h1>
             <div class="q-hero-sub">Prossime partite · Quote aggiornate in tempo reale</div>
           </div>

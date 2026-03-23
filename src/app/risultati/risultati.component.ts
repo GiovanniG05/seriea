@@ -1,9 +1,10 @@
-import { Component, OnInit, ViewEncapsulation, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FootballService } from '../services/football.service';
 import { CompetitionService } from '../services/competition.service';
+import { SeasonService } from '../services/season.service';
 import { OddsService } from '../services/odds.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin } from 'rxjs'; import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-risultati',
@@ -18,7 +19,7 @@ import { forkJoin } from 'rxjs';
         <div class="res-hero-bg"></div>
         <div class="res-hero-inner">
           <div class="res-hero-left">
-            <div class="res-eyebrow"><i class="fa-solid" [class]="comp.flag" [style.color]="comp.color"></i> {{ comp.name }}</div>
+            <div class="res-eyebrow"><img *ngIf="comp.emblem" [src]="comp.emblem" class="comp-emblem-sm" (error)="onImgError($event)"><i *ngIf="!comp.emblem" class="fa-solid" [class]="comp.flag" [style.color]="comp.color"></i> {{ comp.name }}</div>
             <h1 class="res-hero-title">Risultati <span>& Calendario</span></h1>
             <div class="res-hero-sub">{{ finishedCount }} terminati · {{ scheduledCount }} in programma</div>
           </div>
@@ -44,7 +45,7 @@ import { forkJoin } from 'rxjs';
       </div>
 
       <!-- TABELLONE KNOCKOUT (solo coppe, nascosto in fase gironi) -->
-      <div class="res-bracket-wrap" *ngIf="isCup && !loading && bracketRounds.length && selectedStage !== 'LEAGUE_STAGE'">
+      <div class="res-bracket-wrap" *ngIf="isCup && !loading && bracketRounds.length && selectedStage !== 'LEAGUE_STAGE' && selectedStage !== 'GROUP_STAGE' && selectedStage !== 'GROUP_STAGE'">
         <div class="res-bracket-header">
           <i class="fa-solid fa-diagram-project"></i> Fase ad Eliminazione Diretta
           <span class="res-bracket-hint">Clicca su una sfida per i dettagli</span>
@@ -119,7 +120,7 @@ import { forkJoin } from 'rxjs';
       </div>
 
       <!-- NAVIGAZIONE GIORNATE (solo fase gironi coppe) -->
-      <div class="res-nav" *ngIf="isCup && !loading && selectedStage === 'LEAGUE_STAGE'">
+      <div class="res-nav" *ngIf="isCup && !loading && (selectedStage === 'LEAGUE_STAGE' || selectedStage === 'GROUP_STAGE')">
         <button class="res-nav-btn" (click)="prevGroupMatchday()" [disabled]="groupMatchday <= 1">
           <i class="fa-solid fa-chevron-left"></i>
         </button>
@@ -143,7 +144,7 @@ import { forkJoin } from 'rxjs';
       </div>
 
       <div class="res-list">
-        <div class="res-match" *ngFor="let m of filteredMatches" [class]="getRowClass(m.status)">
+        <div class="res-match" *ngFor="let m of filteredMatches" [class]="getRowClass(m.status)" (click)="openMatch(m)" style="cursor:pointer">
 
           <!-- DATA / STATO -->
           <div class="res-meta">
@@ -191,7 +192,8 @@ import { forkJoin } from 'rxjs';
                 <span class="res-odd-lbl">2</span>
                 <span class="res-odd-val">{{ m.odds.away }}</span>
               </div>
-              <a class="res-bet-link" href="https://landing.sisal.it/invita-amici/?mppartner=3835263332262626302654524143&omtrcid=10399233_DIR" target="_blank" rel="noreferrer noopener" title="Scommetti su Sisal">                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              <a class="res-bet-link" href="https://www.sisal.it/scommesse/calcio" target="_blank" title="Scommetti su Sisal">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </a>
             </ng-container>
             <ng-template #noOdds>
@@ -207,6 +209,79 @@ import { forkJoin } from 'rxjs';
         <div class="res-empty" *ngIf="filteredMatches.length === 0">
           <i class="fa-solid fa-calendar-xmark"></i>
           <span>Nessuna partita per questa giornata</span>
+        </div>
+      </div>
+
+      <!-- MODAL DETTAGLIO PARTITA -->
+      <div class="res-modal-overlay" *ngIf="selectedMatch" (click)="closeMatch()">
+        <div class="res-modal res-match-modal" (click)="$event.stopPropagation()">
+          <button class="res-modal-close" (click)="closeMatch()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <div class="res-dm-header">
+            <div class="res-dm-comp">{{ comp.name }} · {{ selectedMatch.utcDate | date:'dd MMM yyyy' }}</div>
+            <div class="res-dm-teams">
+              <div class="res-dm-team">
+                <img [src]="selectedMatch.homeTeam?.crest" class="res-dm-crest" (error)="onImgError($event)">
+                <span>{{ selectedMatch.homeTeam?.name }}</span>
+              </div>
+              <div class="res-dm-score" *ngIf="isPlayed(selectedMatch.status)">
+                <span class="res-dm-num" [class.winner]="isWinner(selectedMatch,'home')">{{ selectedMatch.score?.fullTime?.home }}</span>
+                <span class="res-dm-sep">–</span>
+                <span class="res-dm-num" [class.winner]="isWinner(selectedMatch,'away')">{{ selectedMatch.score?.fullTime?.away }}</span>
+              </div>
+              <div class="res-dm-score" *ngIf="!isPlayed(selectedMatch.status)">
+                <span class="res-dm-time">{{ selectedMatch.utcDate | date:'HH:mm' }}</span>
+              </div>
+              <div class="res-dm-team away">
+                <img [src]="selectedMatch.awayTeam?.crest" class="res-dm-crest" (error)="onImgError($event)">
+                <span>{{ selectedMatch.awayTeam?.name }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="res-dm-body">
+            <div class="res-dm-row" *ngIf="isPlayed(selectedMatch.status)">
+              <span class="res-dm-lbl">Primo Tempo</span>
+              <span class="res-dm-val">{{ selectedMatch.score?.halfTime?.home }} – {{ selectedMatch.score?.halfTime?.away }}</span>
+            </div>
+            <div class="res-dm-row" *ngIf="selectedMatch.referees?.length">
+              <span class="res-dm-lbl"><i class="fa-solid fa-whistle"></i> Arbitro</span>
+              <span class="res-dm-val">{{ selectedMatch.referees[0]?.name }}</span>
+            </div>
+            <div class="res-dm-row" *ngIf="selectedMatch.venue">
+              <span class="res-dm-lbl"><i class="fa-solid fa-location-dot"></i> Stadio</span>
+              <span class="res-dm-val">{{ selectedMatch.venue }}</span>
+            </div>
+            <div class="res-dm-row">
+              <span class="res-dm-lbl"><i class="fa-solid fa-flag"></i> Giornata</span>
+              <span class="res-dm-val">{{ selectedMatch.matchday }}ª</span>
+            </div>
+            <div class="res-dm-row" *ngIf="selectedMatch.status === 'FINISHED'">
+              <span class="res-dm-lbl"><i class="fa-solid fa-trophy"></i> Risultato</span>
+              <span class="res-dm-val res-dm-winner">
+                {{ isWinner(selectedMatch,'home') ? selectedMatch.homeTeam?.shortName : isWinner(selectedMatch,'away') ? selectedMatch.awayTeam?.shortName : 'Pareggio' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Quote se disponibili -->
+          <div class="res-dm-odds" *ngIf="selectedMatch.odds">
+            <div class="res-dm-odd-item">
+              <span class="res-dm-odd-lbl">1</span>
+              <span class="res-dm-odd-val">{{ selectedMatch.odds.home }}</span>
+            </div>
+            <div class="res-dm-odd-item">
+              <span class="res-dm-odd-lbl">X</span>
+              <span class="res-dm-odd-val">{{ selectedMatch.odds.draw }}</span>
+            </div>
+            <div class="res-dm-odd-item">
+              <span class="res-dm-odd-lbl">2</span>
+              <span class="res-dm-odd-val">{{ selectedMatch.odds.away }}</span>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -230,6 +305,7 @@ import { forkJoin } from 'rxjs';
     .res-hero { position:relative; border-radius:16px; overflow:hidden; background:#0a0f1e; }
     .res-hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse 40% 60% at 100% 20%,rgba(15,52,120,.4) 0%,transparent 55%); pointer-events:none; }
     .res-hero-inner { position:relative; z-index:1; padding:28px 36px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; }
+    .comp-emblem-sm { width:16px; height:16px; object-fit:contain; vertical-align:middle; margin-right:4px; }
     .res-eyebrow { font-size:.6rem; font-weight:700; letter-spacing:3px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:4px; }
     .res-hero-title { font-size:2.2rem; font-weight:900; color:white; letter-spacing:-1px; line-height:1; text-transform:uppercase; }
     .res-hero-title span { color:#4ade80; }
@@ -405,6 +481,30 @@ import { forkJoin } from 'rxjs';
     .res-refresh-btn:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); color:white; }
     .spin { animation:spin .75s linear infinite; }
 
+    /* ── DETTAGLIO PARTITA ── */
+    .res-match-modal { max-width:480px; }
+    .res-dm-header { margin-bottom:20px; }
+    .res-dm-comp { font-size:.6rem; font-weight:700; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:1px; margin-bottom:16px; text-align:center; }
+    .res-dm-teams { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; }
+    .res-dm-team { display:flex; flex-direction:column; align-items:center; gap:8px; font-size:.85rem; font-weight:700; color:rgba(255,255,255,.7); text-align:center; }
+    .res-dm-team.away { align-items:center; }
+    .res-dm-crest { width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+    .res-dm-score { text-align:center; }
+    .res-dm-num { font-family:'JetBrains Mono',monospace; font-size:2.2rem; font-weight:900; color:rgba(255,255,255,.3); display:inline-block; min-width:32px; text-align:center; }
+    .res-dm-num.winner { color:white; }
+    .res-dm-sep { font-family:'JetBrains Mono',monospace; font-size:1.4rem; color:rgba(255,255,255,.15); margin:0 4px; }
+    .res-dm-time { font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:700; color:rgba(255,255,255,.4); }
+    .res-dm-body { display:flex; flex-direction:column; gap:10px; padding:16px 0; border-top:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); margin-bottom:16px; }
+    .res-dm-row { display:flex; justify-content:space-between; align-items:center; }
+    .res-dm-lbl { font-size:.72rem; font-weight:600; color:rgba(255,255,255,.3); display:flex; align-items:center; gap:6px; }
+    .res-dm-lbl i { font-size:.65rem; color:rgba(255,255,255,.2); }
+    .res-dm-val { font-size:.82rem; font-weight:700; color:rgba(255,255,255,.7); }
+    .res-dm-winner { color:#4ade80 !important; }
+    .res-dm-odds { display:flex; gap:8px; justify-content:center; }
+    .res-dm-odd-item { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:10px 20px; display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+    .res-dm-odd-lbl { font-size:.65rem; font-weight:800; color:rgba(255,255,255,.3); letter-spacing:.5px; }
+    .res-dm-odd-val { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:white; }
+
     @media(max-width:700px) {
       .res-hero-inner { flex-direction:column; gap:12px; padding:20px 16px; }
       .res-nav { gap:8px; }
@@ -426,7 +526,7 @@ import { forkJoin } from 'rxjs';
     }
   `]
 })
-export class RisultatiComponent implements OnInit {
+export class RisultatiComponent implements OnInit, OnDestroy {
   allMatches: any[] = [];
   filteredMatches: any[] = [];
   currentMatchday = 1;
@@ -439,27 +539,35 @@ export class RisultatiComponent implements OnInit {
     private footballService: FootballService,
     private oddsService: OddsService,
     private competitionService: CompetitionService,
+    private seasonService: SeasonService,
     private cdr: ChangeDetectorRef,
     private zone: NgZone
   ) {}
 
   get comp() { return this.competitionService.selected; }
 
-  get isCup() { return this.comp.type === 'cup'; }
+  get isCup() { return this.comp.type === 'cup' || this.comp.type === 'national'; }
 
-  private readonly KNOCKOUT_STAGES = ['PLAYOFFS','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
-  private readonly STAGE_ORDER = ['LEAGUE_STAGE','PLAYOFFS','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
+  private readonly KNOCKOUT_STAGES = ['PLAYOFFS','LAST_16','ROUND_OF_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
+  private readonly STAGE_ORDER = ['GROUP_STAGE','LEAGUE_STAGE','PLAYOFFS','LAST_16','ROUND_OF_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
   private readonly STAGE_LABELS: Record<string,string> = {
+    GROUP_STAGE:    'Fase a gironi',
     LEAGUE_STAGE:   'Fase a gironi',
     PLAYOFFS:       'Playoff',
     LAST_16:        'Ottavi',
+    ROUND_OF_16:    'Ottavi',
     QUARTER_FINALS: 'Quarti',
     SEMI_FINALS:    'Semifinali',
+    THIRD_PLACE:    '3° posto',
     FINAL:          'Finale',
   };
 
   selectedStage = '';
   selectedTie: any = null;
+  selectedMatch: any = null;
+
+  openMatch(m: any) { this.zone.run(() => { this.selectedMatch = m; }); }
+  closeMatch() { this.zone.run(() => { this.selectedMatch = null; }); }
 
   get availableStages() {
     const stages = [...new Set(this.allMatches.map((m: any) => m.stage as string))];
@@ -540,7 +648,7 @@ export class RisultatiComponent implements OnInit {
 
   get maxGroupMatchday(): number {
     const days = this.allMatches
-      .filter((m: any) => m.stage === 'LEAGUE_STAGE')
+      .filter((m: any) => m.stage === 'LEAGUE_STAGE' || m.stage === 'GROUP_STAGE')
       .map((m: any) => m.matchday as number);
     return days.length ? Math.max(...days) : 1;
   }
@@ -565,7 +673,7 @@ export class RisultatiComponent implements OnInit {
 
   private filterGroupMatchday() {
     this.filteredMatches = this.allMatches
-      .filter((m: any) => m.stage === 'LEAGUE_STAGE' && m.matchday === this.groupMatchday)
+      .filter((m: any) => (m.stage === 'LEAGUE_STAGE' || m.stage === 'GROUP_STAGE') && m.matchday === this.groupMatchday)
       .map((m: any) => ({ ...m, odds: this.mapOdds(m, this.lastOdds) }));
   }
 
@@ -575,13 +683,16 @@ export class RisultatiComponent implements OnInit {
   openTie(tie: any) { this.zone.run(() => { this.selectedTie = tie; }); }
   closeTie() { this.zone.run(() => { this.selectedTie = null; }); }
 
+  private isGroupStage(stage: string): boolean {
+    return stage === 'LEAGUE_STAGE' || stage === 'GROUP_STAGE';
+  }
+
   selectStage(stage: string) {
     this.zone.run(() => {
       this.selectedStage = stage;
-      if (stage === 'LEAGUE_STAGE') {
-        // trova giornata corrente nei gironi
+      if (this.isGroupStage(stage)) {
         const current = this.allMatches
-          .filter((m: any) => m.stage === 'LEAGUE_STAGE' && (m.status === 'SCHEDULED' || m.status === 'TIMED'))
+          .filter((m: any) => this.isGroupStage(m.stage) && (m.status === 'SCHEDULED' || m.status === 'TIMED'))
           .map((m: any) => m.matchday as number);
         this.groupMatchday = current.length ? Math.min(...current) : 1;
         this.filterGroupMatchday();
@@ -595,28 +706,53 @@ export class RisultatiComponent implements OnInit {
 
   private lastOdds: any[] = [];
 
-  ngOnInit() { this.initData(); }
+  private _seasonSub?: Subscription;
+
+  ngOnInit() {
+    this._seasonSub = this.seasonService.season$.subscribe(() => this.initData());
+  }
+
+  ngOnDestroy() { this._seasonSub?.unsubscribe(); }
 
   initData() {
     this.loading = true;
     forkJoin({
-      calendar: this.footballService.getMatches(this.comp.code),
+      calendar: this.footballService.getMatches(this.comp.code, undefined, this.seasonService.season),
       odds: this.oddsService.getOdds(this.comp.code)
     }).subscribe({
       next: (res) => {
         this.allMatches = res.calendar.matches;
         this.lastOdds = res.odds;
         if (this.isCup) {
-          // Seleziona la fase knockout con partite non ancora finite o più recente
-          const activeStage = this.KNOCKOUT_STAGES
-            .find(s => res.calendar.matches.some((m: any) => m.stage === s && (m.status === 'SCHEDULED' || m.status === 'TIMED' || m.status === 'IN_PLAY')))
-            ?? this.KNOCKOUT_STAGES.slice().reverse()
-              .find(s => res.calendar.matches.some((m: any) => m.stage === s && m.status === 'FINISHED'))
-            ?? (res.calendar.matches.some((m: any) => m.stage === 'LEAGUE_STAGE') ? 'LEAGUE_STAGE' : this.KNOCKOUT_STAGES[0]);
+          const matches = res.calendar.matches;
+          const hasGroupStage = matches.some((m: any) => m.stage === 'GROUP_STAGE');
+          const hasLeagueStage = matches.some((m: any) => m.stage === 'LEAGUE_STAGE');
+
+          // Prima prova stage con partite live/programmate
+          let activeStage = this.KNOCKOUT_STAGES
+            .find(s => matches.some((m: any) => m.stage === s && (m.status === 'SCHEDULED' || m.status === 'TIMED' || m.status === 'IN_PLAY')));
+
+          // Se nessuno stage attivo, parti dall'inizio (fase gironi se presente, altrimenti primo knockout)
+          if (!activeStage) {
+            if (hasGroupStage) activeStage = 'GROUP_STAGE';
+            else if (hasLeagueStage) activeStage = 'LEAGUE_STAGE';
+            else activeStage = this.STAGE_ORDER.find(s => matches.some((m: any) => m.stage === s)) ?? this.KNOCKOUT_STAGES[0];
+          }
+
           this.selectedStage = activeStage;
-          this.filteredMatches = this.allMatches
-            .filter((m: any) => m.stage === activeStage)
-            .map((m: any) => ({ ...m, odds: this.mapOdds(m, res.odds) }));
+
+          if (this.isGroupStage(activeStage)) {
+            // Fase gironi: parti dalla prima giornata
+            const days = matches
+              .filter((m: any) => this.isGroupStage(m.stage))
+              .map((m: any) => m.matchday as number);
+            this.groupMatchday = days.length ? Math.min(...days) : 1;
+            this.filterGroupMatchday();
+          } else {
+            this.filteredMatches = this.allMatches
+              .filter((m: any) => m.stage === activeStage)
+              .map((m: any) => ({ ...m, odds: this.mapOdds(m, res.odds) }));
+          }
           this.loading = false;
         } else {
           const first = res.calendar.matches.find((m: any) => m.status !== 'FINISHED');

@@ -15,7 +15,7 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
         <div class="h-hero-bg"></div>
         <div class="h-hero-inner">
           <div class="h-hero-text">
-            <div class="h-eyebrow"><i class="fa-solid fa-signal"></i> Live · {{ selected.name }}</div>
+            <div class="h-eyebrow"><i class="fa-solid fa-signal"></i> Live · <img *ngIf="selected.emblem" [src]="selected.emblem" class="h-eyebrow-emblem" (error)="onImgError($event)"> {{ selected.name }}</div>
             <h1 class="h-title">Football<br><span>Dashboard</span></h1>
             <p class="h-desc">Classifica, risultati, marcatori e quote aggiornati in tempo reale.</p>
           </div>
@@ -57,7 +57,8 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
               (click)="!c.disabled && selectCompetition(c)"
               [title]="c.disabled ? 'Richiede piano premium' : c.name"
               [style.--tc]="c.color">
-              <i class="fa-solid" [class]="c.flag"></i>
+              <img *ngIf="c.emblem" [src]="c.emblem" class="h-sel-emblem" (error)="onImgError($event)">
+              <i *ngIf="!c.emblem" class="fa-solid" [class]="c.flag"></i>
               <span>{{ c.shortName }}</span>
               <i class="fa-solid fa-lock h-lock-icon" *ngIf="c.disabled"></i>
             </button>
@@ -77,7 +78,28 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
               [class.active]="selected.code === c.code"
               (click)="selectCompetition(c)"
               [style.--tc]="c.color">
-              <i class="fa-solid" [class]="c.flag"></i>
+              <img *ngIf="c.emblem" [src]="c.emblem" class="h-sel-emblem" (error)="onImgError($event)">
+              <i *ngIf="!c.emblem" class="fa-solid" [class]="c.flag"></i>
+              <span>{{ c.shortName }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="h-sel-divider"></div>
+
+        <!-- Nazionali -->
+        <div class="h-sel-group">
+          <div class="h-sel-label">
+            <i class="fa-solid fa-earth-americas"></i> Nazionali
+          </div>
+          <div class="h-sel-btns">
+            <button class="h-sel-btn"
+              *ngFor="let c of nationals"
+              [class.active]="selected.code === c.code"
+              (click)="selectCompetition(c)"
+              [style.--tc]="c.color">
+              <img *ngIf="c.emblem" [src]="c.emblem" class="h-sel-emblem" (error)="onImgError($event)">
+              <i *ngIf="!c.emblem" class="fa-solid" [class]="c.flag"></i>
               <span>{{ c.shortName }}</span>
             </button>
           </div>
@@ -232,6 +254,10 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
       font-size:.8rem; font-weight:700;
     }
     .h-sel-btn i { font-size:.8rem; }
+.h-sel-emblem { width:18px; height:18px; object-fit:contain; flex-shrink:0; filter:brightness(.8); }
+    .h-eyebrow-emblem { width:14px; height:14px; object-fit:contain; vertical-align:middle; margin:0 2px; filter:brightness(0) invert(1); }
+    .h-sel-btn.active .h-sel-emblem { opacity:1; }
+    .h-sel-btn:hover .h-sel-emblem { opacity:.8; }
     .h-sel-btn:hover { background:rgba(255,255,255,.08); color:white; }
     .h-sel-btn.active { background:rgba(255,255,255,.1); color:white; border-color:rgba(255,255,255,.2); }
     .h-sel-btn.disabled { opacity:.35; cursor:not-allowed; }
@@ -295,6 +321,8 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
     @media(max-width:900px) {
       .h-grid { grid-template-columns:1fr; }
       .h-explore-grid { grid-template-columns:1fr 1fr; }
+      .h-selector { flex-wrap:wrap; gap:14px; }
+      .h-sel-divider { display:none; }
     }
     @media(max-width:600px) {
       .h-explore-grid { grid-template-columns:1fr; }
@@ -321,8 +349,9 @@ import { CompetitionService, Competition, COMPETITIONS } from '../services/compe
 export class HomeComponent implements OnInit {
   @Output() navigateTo = new EventEmitter<string>();
 
-  get cups()    { return COMPETITIONS.filter(c => c.type === 'cup'); }
-  get leagues() { return COMPETITIONS.filter(c => c.type === 'league'); }
+  get cups()      { return COMPETITIONS.filter(c => c.type === 'cup'); }
+  get nationals()  { return COMPETITIONS.filter(c => c.type === 'national'); }
+  get leagues()    { return COMPETITIONS.filter(c => c.type === 'league'); }
   get selected() { return this.competitionService.selected; }
 
   standings:   any[] = [];
@@ -347,7 +376,7 @@ export class HomeComponent implements OnInit {
     this.standings = [];
     this.nextMatches = [];
 
-    if (!this.selected.resultsOnly) {
+    if (!this.selected.resultsOnly && this.selected.type !== 'cup' || this.selected.code === 'CL') {
       this.footballService.getStandings(this.selected.code).subscribe({
         next: (res) => {
           const total = res.standings.find((s: any) => s.type === 'TOTAL');

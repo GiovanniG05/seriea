@@ -1,8 +1,10 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SquadraComponent } from '../squadra/squadra.component';
 import { FootballService, Standing } from '../services/football.service';
 import { CompetitionService } from '../services/competition.service';
+import { SeasonService } from '../services/season.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-classifica',
@@ -17,17 +19,18 @@ import { CompetitionService } from '../services/competition.service';
         <div class="cl-hero-bg"></div>
         <div class="cl-hero-content">
           <div class="cl-hero-left">
-            <div class="cl-eyebrow"><i class="fa-solid" [class]="comp.flag" [style.color]="comp.color"></i> {{ comp.name }}</div>
+            <div class="cl-eyebrow"><img [src]="comp.emblem" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:4px"> {{ comp.name }}</div>
             <h1 class="cl-hero-title">Classifica <span>{{ comp.shortName }}</span></h1>
-            <div class="cl-hero-sub" *ngIf="matchday">{{ matchday }}ª Giornata · {{ standings.length }} squadre</div>
+            <div class="cl-hero-sub" *ngIf="matchday && !isNational">{{ matchday }}ª Giornata · {{ currentStandings.length }} squadre</div>
+            <div class="cl-hero-sub" *ngIf="isNational">Gruppo {{ selectedGroup }} · {{ currentStandings.length }} squadre</div>
           </div>
           <div class="cl-hero-kpis">
             <div class="cl-kpi">
-              <div class="cl-kpi-val">{{ standings[0]?.points ?? '–' }}</div>
+              <div class="cl-kpi-val">{{ currentStandings[0]?.points ?? '–' }}</div>
               <div class="cl-kpi-lbl">Punti 1°</div>
             </div>
             <div class="cl-kpi">
-              <div class="cl-kpi-val">{{ standings[0]?.team?.shortName ?? '–' }}</div>
+              <div class="cl-kpi-val">{{ currentStandings[0]?.team?.shortName ?? '–' }}</div>
               <div class="cl-kpi-lbl">Leader</div>
             </div>
             <div class="cl-kpi">
@@ -35,7 +38,7 @@ import { CompetitionService } from '../services/competition.service';
               <div class="cl-kpi-lbl">Giornata</div>
             </div>
             <div class="cl-kpi">
-              <div class="cl-kpi-val">{{ standings.length }}</div>
+              <div class="cl-kpi-val">{{ currentStandings.length }}</div>
               <div class="cl-kpi-lbl">Squadre</div>
             </div>
           </div>
@@ -54,16 +57,32 @@ import { CompetitionService } from '../services/competition.service';
         <div>{{ error }}</div>
       </div>
 
-      <!-- LEGENDA -->
-      <div class="cl-legenda" *ngIf="!loading && standings.length">
+      <!-- LEGENDA CL girone unico -->
+      <div class="cl-legenda" *ngIf="!loading && currentStandings.length && comp.code === 'CL' && currentStandings.length > 10">
+        <div class="cl-leg"><span class="cl-leg-bar champions"></span> Ottavi diretti (1°-8°)</div>
+        <div class="cl-leg"><span class="cl-leg-bar europa"></span> Playoff (9°-24°)</div>
+        <div class="cl-leg"><span class="cl-leg-bar retro"></span> Eliminati (25°-36°)</div>
+      </div>
+      <!-- LEGENDA campionati -->
+      <div class="cl-legenda" *ngIf="!loading && currentStandings.length && !isNational && comp.code !== 'CL'">
         <div class="cl-leg"><span class="cl-leg-bar champions"></span> Champions League</div>
         <div class="cl-leg"><span class="cl-leg-bar europa"></span> Europa League</div>
         <div class="cl-leg"><span class="cl-leg-bar conference"></span> Conference League</div>
         <div class="cl-leg"><span class="cl-leg-bar retro"></span> Retrocessione</div>
       </div>
 
+      <!-- TAB GIRONI (solo WC/EC) -->
+      <div class="cl-groups" *ngIf="!loading && isNational && groups.length">
+        <button class="cl-group-btn"
+          *ngFor="let g of groups"
+          [class.active]="selectedGroup === g.label"
+          (click)="selectedGroup = g.label">
+          Gruppo {{ g.label }}
+        </button>
+      </div>
+
       <!-- TABELLA -->
-      <div class="cl-table-wrap" *ngIf="!loading && standings.length">
+      <div class="cl-table-wrap" *ngIf="!loading && currentStandings.length">
         <div class="cl-thead">
           <div class="cl-th-bar"></div>
           <div class="cl-th cl-th-pos">#</div>
@@ -78,7 +97,7 @@ import { CompetitionService } from '../services/competition.service';
           <div class="cl-th cl-th-pts">PTS</div>
         </div>
         <div class="cl-tbody">
-          <div class="cl-row" *ngFor="let s of standings" [class]="getZoneClass(s.position)" (click)="openTeam(s.team.id)" style="cursor:pointer">
+          <div class="cl-row" *ngFor="let s of currentStandings" [class]="getZoneClass(s.position)" (click)="openTeam(s.team.id)" style="cursor:pointer">
             <div class="cl-zone-bar" [class]="getZoneBarClass(s.position)"></div>
             <div class="cl-td cl-td-pos">
               <span class="cl-pos" [class]="getPosClass(s.position)">{{ s.position }}</span>
@@ -113,7 +132,7 @@ import { CompetitionService } from '../services/competition.service';
       </app-squadra>
 
       <!-- FOOTER -->
-      <div class="cl-footer" *ngIf="!loading && standings.length">
+      <div class="cl-footer" *ngIf="!loading && currentStandings.length">
         <span>Dati aggiornati · football-data.org</span>
         <button class="cl-btn-refresh" (click)="load()">
           <i class="fa-solid fa-rotate-right" [class.spin]="loading"></i> Aggiorna
@@ -151,6 +170,11 @@ import { CompetitionService } from '../services/competition.service';
     .cl-leg-bar.europa     { background:#f97316; }
     .cl-leg-bar.conference { background:#16a34a; }
     .cl-leg-bar.retro      { background:#ef4444; }
+
+    .cl-groups { display:flex; gap:6px; flex-wrap:wrap; }
+    .cl-group-btn { padding:6px 14px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:8px; font-size:.72rem; font-weight:700; color:rgba(255,255,255,.4); cursor:pointer; transition:all .15s; font-family:'Barlow',sans-serif; }
+    .cl-group-btn:hover { background:rgba(255,255,255,.08); color:white; }
+    .cl-group-btn.active { background:rgba(59,130,246,.15); border-color:rgba(59,130,246,.3); color:#93c5fd; }
 
     .cl-table-wrap { background:#0f172a; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.06); }
     .cl-thead { display:grid; grid-template-columns:4px 44px 1fr 44px 44px 44px 44px 44px 44px 52px 58px; background:#0a0f1e; border-bottom:1px solid rgba(255,255,255,.07); padding:0 8px; }
@@ -220,60 +244,110 @@ import { CompetitionService } from '../services/competition.service';
       .cl-kpi { min-width:70px; padding:8px 12px; }
       .cl-hero-content { flex-direction:column; gap:16px; }
       .cl-hero-title { font-size:1.4rem; white-space:normal; }
+      .cl-groups { gap:5px; }
+      .cl-group-btn { padding:5px 10px; font-size:.65rem; }
     }
   `]
 })
-export class ClassificaComponent implements OnInit {
+export class ClassificaComponent implements OnInit, OnDestroy {
   private footballService = inject(FootballService);
   private competitionService = inject(CompetitionService);
+  private seasonService = inject(SeasonService);
+  private lastSeason: number | undefined = undefined;
 
   standings: Standing[] = [];
+  groups: { label: string; table: Standing[] }[] = [];
+  selectedGroup = '';
   matchday: number | null = null;
   loading = false;
   error = '';
 
   get comp() { return this.competitionService.selected; }
+  get isNational() { return this.comp.type === 'national' || this.groups.length > 1; }
+  get currentStandings(): Standing[] {
+    if (this.isNational && this.groups.length) {
+      return this.groups.find(g => g.label === this.selectedGroup)?.table ?? this.groups[0]?.table ?? [];
+    }
+    return this.standings;
+  }
 
   selectedTeamId: number | null = null;
-
   openTeam(id: number) { this.selectedTeamId = id; }
+  private _seasonSub?: Subscription;
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this._seasonSub = this.seasonService.season$.subscribe(() => this.load());
+  }
+
+  ngOnDestroy() { this._seasonSub?.unsubscribe(); }
+
+  ngOnChanges() { this.load(); }
+
+  checkSeasonChange() {
+    if (this.seasonService.season !== this.lastSeason) {
+      this.lastSeason = this.seasonService.season;
+      this.load();
+    }
+  }
 
   load() {
     this.loading = true;
     this.error = '';
+    this.groups = [];
+    this.standings = [];
 
     if (this.competitionService.resultsOnly) {
       this.error = `La classifica per ${this.comp.name} non è disponibile nel piano gratuito.`;
       this.loading = false;
       return;
     }
-    // CL/EL/ECL in fase a eliminazione diretta non hanno classifica
-    this.footballService.getStandings(this.comp.code).subscribe({
+
+    this.footballService.getStandings(this.comp.code, this.seasonService.season).subscribe({
       next: (res) => {
-        const total = res.standings.find(s => s.type === 'TOTAL');
-        this.standings = total?.table ?? [];
-        if (!this.standings.length) {
-          // prova con HOME o AWAY (fase a gironi)
-          const any = res.standings[0];
-          this.standings = any?.table ?? [];
+        // Gironi multipli: gruppo A, B, C... (non "League phase" che è girone unico)
+        const groupStandings = res.standings.filter((s: any) =>
+          s.group && s.group !== 'League phase' && /^Group [A-Z]/.test(s.group)
+        );
+        const hasMultipleGroups = groupStandings.length > 1;
+
+        if (this.comp.type === 'national' || hasMultipleGroups) {
+          // Nazionali o coppe con gironi A/B/C...
+          this.groups = groupStandings.map((s: any) => ({
+            label: s.group.replace('Group ', ''),
+            table: s.table ?? []
+          }));
+          if (this.groups.length) this.selectedGroup = this.groups[0].label;
+        } else {
+          // Classifica singola (campionati, CL girone unico, ecc.)
+          const total = res.standings.find((s: any) => s.type === 'TOTAL');
+          this.standings = total?.table ?? res.standings[0]?.table ?? [];
         }
         this.matchday = res.season?.currentMatchday ?? null;
         this.loading = false;
       },
       error: (err) => {
-        this.error = err.status === 403
-          ? `La classifica per ${this.comp.name} non è disponibile nel piano gratuito.`
-          : err.status === 404
-          ? `Classifica non disponibile per ${this.comp.name} in questa fase della competizione.`
-          : 'Errore nel caricamento.';
+        if (err.status === 404 && this.comp.type === 'cup') {
+          this.error = `La classifica per ${this.comp.name} ${this.seasonService.season ? this.seasonService.getLabel(this.seasonService.season) : ''} non è disponibile — questa stagione usava un formato a eliminazione diretta. Vai su Risultati per vedere le partite.`;
+        } else if (err.status === 403) {
+          this.error = `La classifica per ${this.comp.name} non è disponibile nel piano gratuito.`;
+        } else if (err.status === 404) {
+          this.error = `Classifica non disponibile per ${this.comp.name} in questa fase.`;
+        } else {
+          this.error = 'Errore nel caricamento.';
+        }
         this.loading = false;
       }
     });
   }
 
   getZoneClass(pos: number): string {
+    if (this.comp.code === 'CL' && this.currentStandings.length > 10) {
+      // Girone unico CL: top 8 avanzano direttamente, 9-24 playoff, resto eliminati
+      if (pos <= 8)  return 'zone-champions';
+      if (pos <= 24) return 'zone-europa';
+      return 'zone-retro';
+    }
+    if (this.isNational) return pos <= 2 ? 'zone-champions' : pos >= 4 ? 'zone-retro' : '';
     if (pos <= 4)  return 'zone-champions';
     if (pos === 5) return 'zone-europa';
     if (pos === 6) return 'zone-conference';
@@ -282,6 +356,16 @@ export class ClassificaComponent implements OnInit {
   }
 
   getZoneBarClass(pos: number): string {
+    if (this.comp.code === 'CL' && this.currentStandings.length > 10) {
+      if (pos <= 8)  return 'cl-zone-bar bar-champions';
+      if (pos <= 24) return 'cl-zone-bar bar-europa';
+      return 'cl-zone-bar bar-retro';
+    }
+    if (this.isNational) {
+      if (pos <= 2) return 'cl-zone-bar bar-champions';
+      if (pos >= 4) return 'cl-zone-bar bar-retro';
+      return 'cl-zone-bar bar-none';
+    }
     if (pos <= 4)  return 'cl-zone-bar bar-champions';
     if (pos === 5) return 'cl-zone-bar bar-europa';
     if (pos === 6) return 'cl-zone-bar bar-conference';

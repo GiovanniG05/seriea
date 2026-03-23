@@ -19,8 +19,8 @@ export interface Standing {
 
 export interface StandingsResponse {
   competition: { name: string; emblem: string; };
-  season: { currentMatchday: number; };
-  standings: { type: string; table: Standing[] }[];
+  season: { currentMatchday: number; startDate: string; endDate: string; };
+  standings: { type: string; group?: string; table: Standing[] }[];
 }
 
 export interface Match {
@@ -55,10 +55,6 @@ export class FootballService {
   private CACHE_TTL = 10 * 60 * 1000;
   private cache = new Map<string, CacheEntry<any>>();
 
-  private get headers() {
-    return new HttpHeaders({ 'X-Auth-Token': this.API_KEY });
-  }
-
   constructor(private http: HttpClient) {}
 
   private isCacheValid(key: string): boolean {
@@ -88,33 +84,49 @@ export class FootballService {
     return { headers: new HttpHeaders({ 'X-Auth-Token': this.API_KEY }) };
   }
 
-  getStandings(competition = 'SA'): Observable<StandingsResponse> {
-    const key = `standings_${competition}`;
-    const cached = this.getFromCache<StandingsResponse>(key);
+  // Stagioni disponibili per ogni competizione
+  getAvailableSeasons(competition: string): Observable<any> {
+    const key = `seasons_${competition}`;
+    const cached = this.getFromCache<any>(key);
     if (cached) return of(cached);
-    return this.http.get<StandingsResponse>(
-      this.buildUrl(`competitions/${competition}/standings`),
+    return this.http.get<any>(
+      this.buildUrl(`competitions/${competition}`),
       this.authHeaders
     ).pipe(tap(data => this.setCache(key, data)));
   }
 
-  getMatches(competition = 'SA', matchday?: number): Observable<MatchesResponse> {
-    const key = `matches_${competition}_${matchday ?? 'all'}`;
-    const cached = this.getFromCache<MatchesResponse>(key);
+  getStandings(competition = 'SA', season?: number): Observable<StandingsResponse> {
+    const key = `standings_${competition}_${season ?? 'current'}`;
+    const cached = this.getFromCache<StandingsResponse>(key);
     if (cached) return of(cached);
-    const params: any = matchday ? { matchday } : {};
-    const url = this.buildUrl(`competitions/${competition}/matches`);
-    return this.http.get<MatchesResponse>(url, { ...this.authHeaders, params })
-      .pipe(tap(data => this.setCache(key, data)));
+    const params: any = season ? { season } : {};
+    return this.http.get<StandingsResponse>(
+      this.buildUrl(`competitions/${competition}/standings`),
+      { ...this.authHeaders, params }
+    ).pipe(tap(data => this.setCache(key, data)));
   }
 
-  getAllMatches(competition = 'SA'): Observable<MatchesResponse> {
-    const key = `allmatches_${competition}`;
+  getMatches(competition = 'SA', matchday?: number, season?: number): Observable<MatchesResponse> {
+    const key = `matches_${competition}_${matchday ?? 'all'}_${season ?? 'current'}`;
     const cached = this.getFromCache<MatchesResponse>(key);
     if (cached) return of(cached);
+    const params: any = {};
+    if (matchday) params['matchday'] = matchday;
+    if (season) params['season'] = season;
     return this.http.get<MatchesResponse>(
       this.buildUrl(`competitions/${competition}/matches`),
-      this.authHeaders
+      { ...this.authHeaders, params }
+    ).pipe(tap(data => this.setCache(key, data)));
+  }
+
+  getAllMatches(competition = 'SA', season?: number): Observable<MatchesResponse> {
+    const key = `allmatches_${competition}_${season ?? 'current'}`;
+    const cached = this.getFromCache<MatchesResponse>(key);
+    if (cached) return of(cached);
+    const params: any = season ? { season } : {};
+    return this.http.get<MatchesResponse>(
+      this.buildUrl(`competitions/${competition}/matches`),
+      { ...this.authHeaders, params }
     ).pipe(tap(data => this.setCache(key, data)));
   }
 
@@ -128,13 +140,14 @@ export class FootballService {
     ).pipe(tap(data => this.setCache(key, data)));
   }
 
-  getScorers(competition = 'SA'): Observable<any> {
-    const key = `scorers_${competition}`;
+  getScorers(competition = 'SA', season?: number): Observable<any> {
+    const key = `scorers_${competition}_${season ?? 'current'}`;
     const cached = this.getFromCache<any>(key);
     if (cached) return of(cached);
+    const params: any = season ? { season } : {};
     return this.http.get<any>(
       this.buildUrl(`competitions/${competition}/scorers?limit=20`),
-      this.authHeaders
+      { ...this.authHeaders, params }
     ).pipe(tap(data => this.setCache(key, data)));
   }
 }

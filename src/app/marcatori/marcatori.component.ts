@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FootballService } from '../services/football.service';
 import { CompetitionService } from '../services/competition.service';
+import { SeasonService } from '../services/season.service';
+import { Subscription } from 'rxjs';
 
 interface Scorer {
   player: { id: number; name: string; nationality: string; };
@@ -23,7 +25,7 @@ interface Scorer {
         <div class="mar-hero-bg"></div>
         <div class="mar-hero-inner">
           <div class="mar-hero-left">
-            <div class="mar-eyebrow"><i class="fa-solid" [class]="comp.flag" [style.color]="comp.color"></i> {{ comp.name }}</div>
+            <div class="mar-eyebrow"><img *ngIf="comp.emblem" [src]="comp.emblem" class="comp-emblem-sm" (error)="onImgError($event)"><i *ngIf="!comp.emblem" class="fa-solid" [class]="comp.flag" [style.color]="comp.color"></i> {{ comp.name }}</div>
             <h1 class="mar-hero-title">Classifica <span>Marcatori</span></h1>
             <div class="mar-hero-sub" *ngIf="scorers.length">
               Capocannoniere: <strong>{{ scorers[0]?.player?.name }}</strong> — {{ scorers[0]?.goals }} gol
@@ -141,6 +143,7 @@ interface Scorer {
     .mar-hero { position:relative; border-radius:16px; overflow:hidden; background:#0a0f1e; }
     .mar-hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse 40% 60% at 100% 20%,rgba(15,52,120,.4) 0%,transparent 55%); pointer-events:none; }
     .mar-hero-inner { position:relative; z-index:1; padding:28px 36px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; }
+    .comp-emblem-sm { width:16px; height:16px; object-fit:contain; vertical-align:middle; margin-right:4px; }
     .mar-eyebrow { font-size:.6rem; font-weight:700; letter-spacing:3px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:4px; }
     .mar-hero-title { font-size:2.2rem; font-weight:900; color:white; letter-spacing:-1px; line-height:1; text-transform:uppercase; }
     .mar-hero-title span { color:#4ade80; }
@@ -246,16 +249,22 @@ interface Scorer {
     }
   `]
 })
-export class MarcatoriComponent implements OnInit {
+export class MarcatoriComponent implements OnInit, OnDestroy {
   scorers: Scorer[] = [];
   loading = false;
   error = '';
 
   get totalGoals(): number { return this.scorers.reduce((s, sc) => s + sc.goals, 0); }
 
-  constructor(private footballService: FootballService, private competitionService: CompetitionService) {}
+  constructor(private footballService: FootballService, private competitionService: CompetitionService, private seasonService: SeasonService) {}
   get comp() { return this.competitionService.selected; }
-  ngOnInit() { this.load(); }
+  private _seasonSub?: Subscription;
+
+  ngOnInit() {
+    this._seasonSub = this.seasonService.season$.subscribe(() => this.load());
+  }
+
+  ngOnDestroy() { this._seasonSub?.unsubscribe(); }
 
   private readonly NO_SCORERS = ['EL', 'ECL'];
 
@@ -270,7 +279,7 @@ export class MarcatoriComponent implements OnInit {
       return;
     }
 
-    this.footballService.getScorers(this.comp.code).subscribe({
+    this.footballService.getScorers(this.comp.code, this.seasonService.season).subscribe({
       next: (res: any) => {
         this.scorers = res.scorers ?? [];
         if (!this.scorers.length) {
