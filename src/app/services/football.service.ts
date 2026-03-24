@@ -140,6 +140,26 @@ export class FootballService {
     ).pipe(tap(data => this.setCache(key, data)));
   }
 
+  getTeamMatches(teamId: number, season?: number): Observable<any> {
+    const key = `team_matches_${teamId}_${season ?? 'current'}`;
+    const cached = this.getFromCache<any>(key);
+    if (cached) return of(cached);
+    const params: any = season ? { season } : {};
+    return this.http.get<any>(
+      this.buildUrl(`teams/${teamId}/matches`),
+      { ...this.authHeaders, params: { ...params, limit: 100 } }
+    ).pipe(tap(data => this.setCache(key, data)));
+  }
+
+  getTeamMatchesFresh(teamId: number, season?: number): Observable<any> {
+    const params: any = { limit: 100 };
+    if (season) params['season'] = season;
+    return this.http.get<any>(
+      this.buildUrl(`teams/${teamId}/matches`),
+      { ...this.authHeaders, params }
+    );
+  }
+
   getScorers(competition = 'SA', season?: number): Observable<any> {
     const key = `scorers_${competition}_${season ?? 'current'}`;
     const cached = this.getFromCache<any>(key);

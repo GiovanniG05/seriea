@@ -1,0 +1,163 @@
+import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../services/auth.service';
+import { COMPETITIONS } from '../services/competition.service';
+
+type AuthTab = 'login' | 'register';
+
+@Component({
+  selector: 'app-auth-modal',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="auth-overlay" (click)="close.emit()">
+      <div class="auth-modal" (click)="$event.stopPropagation()">
+        <button class="auth-close" (click)="close.emit()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="auth-logo">Calcio<strong> Live</strong></div>
+
+        <!-- TABS -->
+        <div class="auth-tabs">
+          <button class="auth-tab" [class.active]="tab==='login'" (click)="tab='login'; error=''">Accedi</button>
+          <button class="auth-tab" [class.active]="tab==='register'" (click)="tab='register'; error=''">Registrati</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="auth-form" *ngIf="tab==='login'">
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" [(ngModel)]="loginEmail" placeholder="la@tua.email" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="loginPassword" placeholder="••••••••" class="auth-input" (keyup.enter)="doLogin()">
+          </div>
+          <div class="auth-error" *ngIf="error">{{ error }}</div>
+          <button class="auth-submit" (click)="doLogin()" [disabled]="loading">
+            <i class="fa-solid fa-circle-notch fa-spin" *ngIf="loading"></i>
+            {{ loading ? 'Accesso…' : 'Accedi' }}
+          </button>
+          <div class="auth-switch">Non hai un account? <button (click)="tab='register'">Registrati</button></div>
+        </div>
+
+        <!-- REGISTER -->
+        <div class="auth-form" *ngIf="tab==='register'">
+          <div class="auth-row">
+            <div class="auth-field">
+              <label>Nome</label>
+              <input type="text" [(ngModel)]="regNome" placeholder="Mario" class="auth-input">
+            </div>
+            <div class="auth-field">
+              <label>Cognome</label>
+              <input type="text" [(ngModel)]="regCognome" placeholder="Rossi" class="auth-input">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>Username</label>
+            <input type="text" [(ngModel)]="regUsername" placeholder="mario_rossi" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Email</label>
+            <input type="email" [(ngModel)]="regEmail" placeholder="la@tua.email" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="regPassword" placeholder="min. 6 caratteri" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Squadra Preferita</label>
+            <input type="text" [(ngModel)]="regSquadra" placeholder="Es: Juventus, Milan, Inter…" class="auth-input">
+          </div>
+          <div class="auth-error" *ngIf="error">{{ error }}</div>
+          <button class="auth-submit" (click)="doRegister()" [disabled]="loading">
+            <i class="fa-solid fa-circle-notch fa-spin" *ngIf="loading"></i>
+            {{ loading ? 'Registrazione…' : 'Crea account' }}
+          </button>
+          <div class="auth-switch">Hai già un account? <button (click)="tab='login'">Accedi</button></div>
+        </div>
+
+      </div>
+    </div>
+  `,
+  styles: [`
+    .auth-overlay { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .2s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .auth-modal { background:#0d1117; border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:32px; width:100%; max-width:420px; position:relative; animation:slideUp .2s ease; box-shadow:0 24px 64px rgba(0,0,0,.6); font-family:'Barlow',sans-serif; }
+    @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .auth-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,.07); border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:.85rem; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+    .auth-close:hover { background:rgba(255,255,255,.12); color:white; }
+    .auth-logo { font-size:1.3rem; font-weight:700; color:rgba(255,255,255,.7); text-align:center; margin-bottom:24px; }
+    .auth-logo strong { color:#4ade80; font-weight:900; }
+    .auth-tabs { display:flex; background:rgba(255,255,255,.04); border-radius:10px; padding:4px; margin-bottom:24px; }
+    .auth-tab { flex:1; padding:8px; border:none; border-radius:7px; background:transparent; color:rgba(255,255,255,.4); font-size:.82rem; font-weight:700; cursor:pointer; transition:all .15s; font-family:'Barlow',sans-serif; }
+    .auth-tab.active { background:rgba(255,255,255,.1); color:white; }
+    .auth-form { display:flex; flex-direction:column; gap:14px; }
+    .auth-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .auth-field { display:flex; flex-direction:column; gap:5px; }
+    .auth-field label { font-size:.68rem; font-weight:700; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.5px; }
+    .auth-input { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 14px; color:white; font-size:.88rem; font-family:'Barlow',sans-serif; outline:none; transition:all .15s; }
+    .auth-input:focus { border-color:rgba(74,222,128,.4); background:rgba(74,222,128,.04); }
+    .auth-input::placeholder { color:rgba(255,255,255,.2); }
+    .auth-error { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:8px; padding:10px 14px; color:#fca5a5; font-size:.78rem; font-weight:600; }
+    .auth-submit { padding:13px; background:#4ade80; border:none; border-radius:10px; color:#070d1a; font-size:.9rem; font-weight:800; cursor:pointer; font-family:'Barlow',sans-serif; transition:all .15s; margin-top:4px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .auth-submit:hover:not(:disabled) { background:#22c55e; }
+    .auth-submit:disabled { opacity:.5; cursor:not-allowed; }
+    .auth-switch { text-align:center; font-size:.75rem; color:rgba(255,255,255,.3); }
+    .auth-switch button { background:none; border:none; color:#4ade80; font-weight:700; cursor:pointer; font-family:'Barlow',sans-serif; font-size:.75rem; }
+  `]
+})
+export class AuthModalComponent implements OnInit {
+  @Input() initialTab: 'login' | 'register' = 'login';
+  @Output() close = new EventEmitter<void>();
+
+  private authService = inject(AuthService);
+
+  tab: AuthTab = 'login';
+
+  ngOnInit() { this.tab = this.initialTab; }
+  error = '';
+  loading = false;
+
+  // Login
+  loginEmail = '';
+  loginPassword = '';
+
+  // Register
+  regNome = '';
+  regCognome = '';
+  regUsername = '';
+  regEmail = '';
+  regPassword = '';
+  regSquadra = '';
+
+  doLogin() {
+    if (!this.loginEmail || !this.loginPassword) { this.error = 'Inserisci email e password'; return; }
+    this.loading = true; this.error = '';
+    this.authService.login(this.loginEmail, this.loginPassword).subscribe({
+      next: () => { this.loading = false; this.close.emit(); },
+      error: (err) => { this.loading = false; this.error = err.error?.error ?? 'Errore durante il login'; }
+    });
+  }
+
+  doRegister() {
+    if (!this.regNome || !this.regCognome || !this.regUsername || !this.regEmail || !this.regPassword) {
+      this.error = 'Tutti i campi sono obbligatori'; return;
+    }
+    if (this.regPassword.length < 6) { this.error = 'La password deve essere di almeno 6 caratteri'; return; }
+    this.loading = true; this.error = '';
+    this.authService.register({
+      email: this.regEmail,
+      password: this.regPassword,
+      username: this.regUsername,
+      nome: this.regNome,
+      cognome: this.regCognome,
+      squadra_preferita: this.regSquadra
+    }).subscribe({
+      next: () => { this.loading = false; this.close.emit(); },
+      error: (err) => { this.loading = false; this.error = err.error?.error ?? 'Errore durante la registrazione'; }
+    });
+  }
+}

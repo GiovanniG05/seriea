@@ -54,6 +54,9 @@ import { FootballService } from '../services/football.service';
             <button class="sq-tab" [class.active]="activeTab==='staff'" (click)="activeTab='staff'">
               <i class="fa-solid fa-person-chalkboard"></i> Staff
             </button>
+            <button class="sq-tab" [class.active]="activeTab==='partite'" (click)="loadMatches()">
+              <i class="fa-solid fa-futbol"></i> Partite
+            </button>
           </div>
 
           <!-- ROSA -->
@@ -95,6 +98,51 @@ import { FootballService } from '../services/football.service';
                 <div class="sq-staff-meta" *ngIf="s.nationality">
                   <span><i class="fa-solid fa-flag"></i> {{ s.nationality }}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PARTITE -->
+          <div class="sq-content" *ngIf="activeTab==='partite'">
+            <!-- Selettore stagione -->
+            <div class="sq-season-wrap">
+              <select class="sq-season-select" (change)="onSeasonChange($event)">
+                <option value="">In corso</option>
+                <option *ngFor="let y of matchSeasons" [value]="y">{{ y }}/{{ (y+1).toString().slice(2) }}</option>
+              </select>
+            </div>
+            <div class="sq-loading" *ngIf="loadingMatches">
+              <div class="sq-spinner"></div>
+              <span>Caricamento partite…</span>
+            </div>
+            <div class="sq-matches" *ngIf="!loadingMatches">
+              <div class="sq-match-item" *ngFor="let m of recentMatches">
+                <div class="sq-match-date">{{ m.utcDate | date:'dd MMM yy' }}</div>
+                <div class="sq-match-teams">
+                  <div class="sq-match-team" [class.bold]="m.homeTeam.id === teamId">
+                    <img [src]="m.homeTeam.crest" class="sq-match-crest" (error)="onImgError($event)">
+                    <span>{{ m.homeTeam.shortName }}</span>
+                  </div>
+                  <div class="sq-match-score" *ngIf="m.status === 'FINISHED'">
+                    <span [class.win]="isWin(m,'home')" [class.loss]="isLoss(m,'home')">{{ m.score.fullTime.home }}</span>
+                    <span class="sq-match-sep">–</span>
+                    <span [class.win]="isWin(m,'away')" [class.loss]="isLoss(m,'away')">{{ m.score.fullTime.away }}</span>
+                  </div>
+                  <div class="sq-match-score tbd" *ngIf="m.status !== 'FINISHED'">
+                    {{ m.utcDate | date:'HH:mm' }}
+                  </div>
+                  <div class="sq-match-team away" [class.bold]="m.awayTeam.id === teamId">
+                    <span>{{ m.awayTeam.shortName }}</span>
+                    <img [src]="m.awayTeam.crest" class="sq-match-crest" (error)="onImgError($event)">
+                  </div>
+                </div>
+                <div class="sq-match-result" [class]="getMatchResult(m)">
+                  {{ getMatchResultLabel(m) }}
+                </div>
+              </div>
+              <div class="sq-no-matches" *ngIf="recentMatches.length === 0">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                <span>Nessuna partita disponibile</span>
               </div>
             </div>
           </div>
@@ -186,6 +234,32 @@ import { FootballService } from '../services/football.service';
     .sq-staff-meta { display:flex; gap:12px; font-size:.68rem; color:rgba(255,255,255,.4); font-weight:600; }
     .sq-staff-meta i { color:rgba(255,255,255,.25); margin-right:3px; }
 
+    .sq-season-wrap { margin-bottom:12px; }
+    .sq-season-select { background:#111827; border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:7px 12px; color:rgba(255,255,255,.7); font-size:.75rem; font-weight:700; font-family:'Barlow',sans-serif; cursor:pointer; outline:none; width:100%; }
+    .sq-season-select option { background:#111827; color:white; }
+
+    /* PARTITE */
+    .sq-matches { display:flex; flex-direction:column; gap:8px; }
+    .sq-match-item { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px; }
+    .sq-match-date { font-size:.62rem; font-weight:700; color:rgba(255,255,255,.3); min-width:56px; flex-shrink:0; }
+    .sq-match-teams { flex:1; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; }
+    .sq-match-team { display:flex; align-items:center; gap:6px; font-size:.75rem; font-weight:600; color:rgba(255,255,255,.5); }
+    .sq-match-team.away { justify-content:flex-end; flex-direction:row-reverse; }
+    .sq-match-team.bold { color:white; font-weight:800; }
+    .sq-match-crest { width:18px; height:18px; object-fit:contain; flex-shrink:0; }
+    .sq-match-score { font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:700; text-align:center; display:flex; align-items:center; gap:4px; }
+    .sq-match-score .win { color:white; }
+    .sq-match-score .loss { color:rgba(255,255,255,.3); }
+    .sq-match-score.tbd { font-size:.8rem; color:rgba(255,255,255,.3); }
+    .sq-match-sep { color:rgba(255,255,255,.2); font-size:.8rem; }
+    .sq-match-result { font-size:.6rem; font-weight:800; padding:2px 7px; border-radius:5px; letter-spacing:.5px; flex-shrink:0; }
+    .sq-match-result.win { background:rgba(74,222,128,.15); color:#4ade80; }
+    .sq-match-result.loss { background:rgba(239,68,68,.12); color:#f87171; }
+    .sq-match-result.draw { background:rgba(255,255,255,.07); color:rgba(255,255,255,.4); }
+    .sq-match-result.upcoming { background:rgba(255,255,255,.05); color:rgba(255,255,255,.3); }
+    .sq-no-matches { text-align:center; padding:32px; color:rgba(255,255,255,.2); display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .sq-no-matches i { font-size:1.8rem; opacity:.3; }
+
     @media(max-width:500px) {
       .sq-panel { width:100%; }
       .sq-header { padding:16px 16px 16px; }
@@ -208,7 +282,11 @@ export class SquadraComponent implements OnInit {
 
   team: any = null;
   loading = true;
-  activeTab: 'rosa' | 'staff' = 'rosa';
+  activeTab: 'rosa' | 'staff' | 'partite' = 'rosa';
+  recentMatches: any[] = [];
+  loadingMatches = false;
+  matchSeasons = [2024, 2023];
+  selectedMatchSeason: number | undefined = undefined;
 
   positions = [
     { key: 'Goalkeeper',  label: 'Portieri',        keys: ['Goalkeeper'] },
@@ -241,6 +319,71 @@ export class SquadraComponent implements OnInit {
     let age = today.getFullYear() - birth.getFullYear();
     if (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate())) age--;
     return age;
+  }
+
+  onSeasonChange(event: Event) {
+    const val = (event.target as HTMLSelectElement).value;
+    this.selectedMatchSeason = val ? Number(val) : undefined;
+    this.recentMatches = [];
+    // Forza ricarica passando la stagione direttamente
+    this.loadingMatches = true;
+    this.footballService.getTeamMatchesFresh(this.teamId, this.selectedMatchSeason).subscribe({
+      next: (res: any) => {
+        const all = res.matches ?? [];
+        this.recentMatches = all.sort((a: any, b: any) =>
+          new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime()
+        );
+        this.loadingMatches = false;
+      },
+      error: () => { this.loadingMatches = false; }
+    });
+  }
+
+  loadMatches(force = false) {
+    this.activeTab = 'partite';
+    if (this.recentMatches.length && !force) return;
+    this.loadingMatches = true;
+    this.footballService.getTeamMatches(this.teamId, this.selectedMatchSeason).subscribe({
+      next: (res: any) => {
+        const all = res.matches ?? [];
+        // Ordina per data decrescente (più recenti prima)
+        this.recentMatches = all.sort((a: any, b: any) =>
+          new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime()
+        );
+        this.loadingMatches = false;
+      },
+      error: () => { this.loadingMatches = false; }
+    });
+  }
+
+  isWin(m: any, side: 'home' | 'away'): boolean {
+    const h = m.score?.fullTime?.home ?? 0;
+    const a = m.score?.fullTime?.away ?? 0;
+    return side === 'home' ? h > a : a > h;
+  }
+
+  isLoss(m: any, side: 'home' | 'away'): boolean {
+    const h = m.score?.fullTime?.home ?? 0;
+    const a = m.score?.fullTime?.away ?? 0;
+    return side === 'home' ? h < a : a < h;
+  }
+
+  getMatchResult(m: any): string {
+    if (m.status !== 'FINISHED') return 'upcoming';
+    const h = m.score?.fullTime?.home ?? 0;
+    const a = m.score?.fullTime?.away ?? 0;
+    const isHome = m.homeTeam.id === this.teamId;
+    if (h === a) return 'draw';
+    const won = isHome ? h > a : a > h;
+    return won ? 'win' : 'loss';
+  }
+
+  getMatchResultLabel(m: any): string {
+    if (m.status !== 'FINISHED') return 'PROSS';
+    const r = this.getMatchResult(m);
+    if (r === 'win') return 'V';
+    if (r === 'loss') return 'S';
+    return 'P';
   }
 
   onOverlayClick(e: MouseEvent) { this.close.emit(); }
