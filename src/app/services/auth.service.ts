@@ -10,6 +10,7 @@ export interface User {
   nome: string;
   cognome: string;
   squadra_preferita: string;
+  squadra_crest: string;
   created_at: string;
 }
 
@@ -40,6 +41,7 @@ export class AuthService {
     nome: string;
     cognome: string;
     squadra_preferita: string;
+  squadra_crest: string;
   }): Observable<any> {
     return this.http.post(`${this.API}/auth/register`, data).pipe(
       tap((res: any) => this.saveSession(res))
@@ -57,6 +59,23 @@ export class AuthService {
     this._token.set(null);
     localStorage.removeItem('cl_token');
     localStorage.removeItem('cl_user');
+  }
+
+  updateProfile(nome: string, cognome: string, squadra_preferita: string, squadra_crest: string): Observable<any> {
+    return this.http.put(`\${this.API}/auth/profile`,
+      { nome, cognome, squadra_preferita, squadra_crest },
+      { headers: { Authorization: `Bearer \${this._token()}` } }
+    ).pipe(tap((res: any) => {
+      this._user.set(res.user);
+      localStorage.setItem('cl_user', JSON.stringify(res.user));
+    }));
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+    return this.http.put(`\${this.API}/auth/password`,
+      { currentPassword, newPassword },
+      { headers: { Authorization: `Bearer \${this._token()}` } }
+    );
   }
 
   private saveSession(res: any) {

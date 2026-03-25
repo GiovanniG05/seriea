@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { HomeComponent } from './home/home.component';
 import { ClassificaComponent } from './classifica/classifica.component';
@@ -9,13 +10,14 @@ import { AuthModalComponent } from './auth/auth-modal.component';
 import { SeasonService } from './services/season.service';
 import { CompetitionService } from './services/competition.service';
 import { AuthService } from './services/auth.service';
+import { ProfiloComponent } from './profilo/profilo.component';
 
 type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, HomeComponent, ClassificaComponent, RisultatiComponent, MarcatoriComponent, QuoteComponent, AuthModalComponent],
+  imports: [CommonModule, HomeComponent, ClassificaComponent, RisultatiComponent, MarcatoriComponent, QuoteComponent, AuthModalComponent, ProfiloComponent],
   template: `
     <div class="app-shell">
 
@@ -72,9 +74,14 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
                   <div class="app-user-username">{{ '@' + authService.user?.username }}</div>
                   <div class="app-user-email">{{ authService.user?.email }}</div>
                   <div class="app-user-squadra" *ngIf="authService.user?.squadra_preferita">
-                    <i class="fa-solid fa-shield-halved"></i> {{ authService.user?.squadra_preferita }}
+                    <img *ngIf="authService.user?.squadra_crest" [src]="authService.user?.squadra_crest" class="app-user-squad-crest" (error)="onCrestError($event)">
+                    <i *ngIf="!authService.user?.squadra_crest" class="fa-solid fa-shield-halved"></i>
+                    {{ authService.user?.squadra_preferita }}
                   </div>
                 </div>
+                <button class="app-user-profile" (click)="profiloOpen=true; userMenuOpen=false">
+                  <i class="fa-solid fa-user"></i> Il mio profilo
+                </button>
                 <button class="app-user-logout" (click)="authService.logout(); userMenuOpen=false">
                   <i class="fa-solid fa-right-from-bracket"></i> Esci
                 </button>
@@ -91,6 +98,9 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
         <app-marcatori  *ngIf="view==='marcatori'" />
         <app-quote      *ngIf="view==='quote'" />
       </main>
+
+      <!-- PROFILO MODAL -->
+      <app-profilo *ngIf="profiloOpen" (close)="profiloOpen=false"></app-profilo>
 
       <!-- AUTH MODAL -->
       <app-auth-modal
@@ -146,9 +156,12 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
     .app-user-email { font-size:.68rem; color:rgba(255,255,255,.35); }
     .app-user-squadra { font-size:.68rem; color:rgba(255,255,255,.4); margin-top:4px; display:flex; align-items:center; gap:5px; }
     .app-user-squadra i { color:rgba(255,255,255,.25); font-size:.6rem; }
+    .app-user-profile { width:100%; padding:8px 12px; background:transparent; border:none; border-radius:8px; color:rgba(255,255,255,.6); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; margin-bottom:2px; }
+    .app-user-profile:hover { background:rgba(255,255,255,.07); color:white; }
     .app-user-logout { width:100%; padding:8px 12px; background:transparent; border:none; border-radius:8px; color:rgba(255,255,255,.5); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; }
     .app-user-logout:hover { background:rgba(239,68,68,.1); color:#f87171; }
-
+    .app-user-squad-crest { width:14px; height:14px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+    
     .app-main { max-width:1060px; margin:0 auto; padding:24px 20px 48px; }
 
     @media(max-width:700px) {
@@ -166,15 +179,27 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   view: View = 'home';
   authModalOpen = false;
+  profiloOpen = false;
   authTab: 'login' | 'register' = 'login';
   userMenuOpen = false;
 
   seasonService = inject(SeasonService);
   authService = inject(AuthService);
   private competitionService = inject(CompetitionService);
+
+  private http = inject(HttpClient);
+
+  ngOnInit() {
+    // Keep-alive: pinga il backend ogni 8 minuti per evitare il sleep su Render
+    const ping = () => this.http.get('https://calciolive-backend.onrender.com/api/health').subscribe();
+    ping();
+    setInterval(ping, 8 * 60 * 1000);
+  }
+
+  onCrestError(e: Event) { (e.target as HTMLImageElement).style.display = 'none'; }
 
   getSeasons(): number[] {
     const comp = this.competitionService.selected;

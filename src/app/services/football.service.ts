@@ -49,8 +49,9 @@ interface CacheEntry<T> {
 @Injectable({ providedIn: 'root' })
 export class FootballService {
   private API_KEY = 'fabe55864dce4c9d8d3504cfb996887a';
+  private BACKEND = 'https://calciolive-backend.onrender.com';
   private BASE_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? '/api/football'
+    ? `${this.BACKEND}/api/football`
     : 'https://api.football-data.org/v4';
   private CACHE_TTL = 10 * 60 * 1000;
   private cache = new Map<string, CacheEntry<any>>();
