@@ -48,11 +48,8 @@ interface CacheEntry<T> {
 
 @Injectable({ providedIn: 'root' })
 export class FootballService {
-  private API_KEY = 'fabe55864dce4c9d8d3504cfb996887a';
   private BACKEND = 'https://calciolive-backend.onrender.com';
-  private BASE_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? `${this.BACKEND}/api/football`
-    : 'https://api.football-data.org/v4';
+  private BASE_URL = `${this.BACKEND}/api/football`;
   private CACHE_TTL = 10 * 60 * 1000;
   private cache = new Map<string, CacheEntry<any>>();
 
@@ -74,16 +71,10 @@ export class FootballService {
   }
 
   private buildUrl(path: string): string {
-    if (this.BASE_URL.startsWith('/api')) {
-      return `${this.BASE_URL}?path=${encodeURIComponent(path)}`;
-    }
-    return `${this.BASE_URL}/${path}`;
+    return `${this.BASE_URL}?path=${encodeURIComponent(path)}`;
   }
 
-  private get authHeaders() {
-    if (this.BASE_URL.startsWith('/api')) return {};
-    return { headers: new HttpHeaders({ 'X-Auth-Token': this.API_KEY }) };
-  }
+  private get authHeaders() { return {}; }
 
   // Stagioni disponibili per ogni competizione
   getAvailableSeasons(competition: string): Observable<any> {
