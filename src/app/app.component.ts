@@ -34,7 +34,7 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
               <i class="fa-solid fa-list-ol"></i><span>Classifica</span>
             </button>
             <button class="app-nav-btn" [class.active]="view==='risultati'" (click)="view='risultati'">
-              <i class="fa-solid fa-calendar-days"></i><span>Risultati & Quote</span>
+              <i class="fa-solid fa-calendar-days"></i><span>Risultati</span>
             </button>
             <button class="app-nav-btn" [class.active]="view==='marcatori'" (click)="view='marcatori'">
               <i class="fa-solid fa-shoe-prints"></i><span>Marcatori</span>
@@ -45,7 +45,6 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
           </div>
 
           <div class="app-nav-right">
-            <!-- SELETTORE STAGIONE -->
             <div class="app-season-wrap" *ngIf="view !== 'home' && view !== 'quote'">
               <select class="app-season-select" (change)="onSeasonChange($event)">
                 <option [value]="''" [selected]="!seasonService.season">In corso</option>
@@ -55,13 +54,11 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
               </select>
             </div>
 
-            <!-- AUTH BUTTONS -->
             <div class="app-auth" *ngIf="!authService.isLoggedIn">
               <button class="app-auth-btn" (click)="authModalOpen=true; authTab='login'">Accedi</button>
               <button class="app-auth-btn primary" (click)="authModalOpen=true; authTab='register'">Registrati</button>
             </div>
 
-            <!-- USER MENU -->
             <div class="app-user" *ngIf="authService.isLoggedIn">
               <button class="app-user-btn" (click)="userMenuOpen=!userMenuOpen">
                 <div class="app-user-avatar">{{ authService.user?.username?.[0]?.toUpperCase() }}</div>
@@ -99,10 +96,8 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
         <app-quote      *ngIf="view==='quote'" />
       </main>
 
-      <!-- PROFILO MODAL -->
       <app-profilo *ngIf="profiloOpen" (close)="profiloOpen=false"></app-profilo>
 
-      <!-- AUTH MODAL -->
       <app-auth-modal
         *ngIf="authModalOpen"
         [initialTab]="authTab"
@@ -120,7 +115,7 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
     .app-nav { background:#0a0f1e; border-bottom:1px solid rgba(255,255,255,.07); position:sticky; top:0; z-index:100; }
     .app-nav-inner { max-width:1060px; margin:0 auto; padding:0 20px; display:flex; align-items:center; height:58px; gap:12px; }
 
-    .app-brand { display:flex; align-items:center; flex-shrink:0; }
+    .app-brand { display:flex; align-items:center; flex-shrink:0; cursor:pointer; }
     .app-brand-name { font-size:1.05rem; font-weight:700; color:rgba(255,255,255,.7); letter-spacing:-.3px; }
     .app-brand-name strong { color:#4ade80; font-weight:900; }
 
@@ -132,18 +127,15 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
 
     .app-nav-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
 
-    /* SEASON */
     .app-season-select { background:#111827; border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:6px 24px 6px 10px; color:rgba(255,255,255,.7); font-size:.75rem; font-weight:700; font-family:'Barlow',sans-serif; cursor:pointer; outline:none; transition:all .15s; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; }
     .app-season-select option { background:#111827; color:white; }
 
-    /* AUTH */
     .app-auth { display:flex; gap:8px; }
     .app-auth-btn { padding:7px 14px; border-radius:8px; font-size:.78rem; font-weight:700; cursor:pointer; font-family:'Barlow',sans-serif; transition:all .15s; border:1px solid rgba(255,255,255,.15); background:transparent; color:rgba(255,255,255,.6); }
     .app-auth-btn:hover { background:rgba(255,255,255,.07); color:white; }
     .app-auth-btn.primary { background:#4ade80; color:#070d1a; border-color:#4ade80; }
     .app-auth-btn.primary:hover { background:#22c55e; }
 
-    /* USER */
     .app-user { position:relative; }
     .app-user-btn { display:flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; cursor:pointer; font-family:'Barlow',sans-serif; font-size:.8rem; font-weight:700; color:white; transition:all .15s; }
     .app-user-btn:hover { background:rgba(255,255,255,.1); }
@@ -161,21 +153,52 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
     .app-user-logout { width:100%; padding:8px 12px; background:transparent; border:none; border-radius:8px; color:rgba(255,255,255,.5); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; }
     .app-user-logout:hover { background:rgba(239,68,68,.1); color:#f87171; }
     .app-user-squad-crest { width:14px; height:14px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
-    
+
     .app-main { max-width:1060px; margin:0 auto; padding:24px 20px 48px; }
 
     @media(max-width:700px) {
-      .app-nav-inner { padding:0 12px; height:52px; }
-      .app-nav-btn { padding:6px 10px; font-size:.7rem; gap:5px; }
-      .app-nav-btn span { display:none; }
-      .app-brand-name { font-size:.9rem; }
-      .app-season-select { font-size:.68rem; padding:5px 22px 5px 8px; }
-      .app-auth-btn { padding:6px 10px; font-size:.7rem; }
+      .app-nav-inner {
+        padding:0 10px;
+        height:auto;
+        flex-wrap:wrap;
+        padding-top:6px;
+        padding-bottom:0;
+        gap:6px;
+      }
+      .app-brand { height:38px; }
+      .app-nav-right { height:38px; margin-left:auto; gap:6px; }
+      .app-nav-links {
+        order:3;
+        width:100%;
+        border-top:1px solid rgba(255,255,255,.06);
+        display:flex;
+        justify-content:space-around;
+        gap:0;
+        padding:2px 0 4px;
+        flex:none;
+      }
+      .app-nav-btn {
+        flex:1;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:2px;
+        padding:4px 2px;
+        font-size:.55rem;
+        letter-spacing:0;
+        text-transform:none;
+        border:none;
+        border-radius:6px;
+      }
+      .app-nav-btn i { font-size:.9rem; }
+      .app-nav-btn span { display:block; font-size:.55rem; }
+      .app-nav-btn.active { background:rgba(74,222,128,.1); color:#4ade80; border:none; }
+      .app-brand-name { font-size:.88rem; }
+      .app-season-select { font-size:.65rem; padding:5px 20px 5px 7px; }
+      .app-auth-btn { padding:5px 10px; font-size:.7rem; }
       .app-user-name-text { display:none; }
-    }
-    @media(max-width:400px) {
-      .app-nav-links { gap:0; }
-      .app-nav-btn { padding:6px 8px; }
+      .app-user-btn { padding:5px 8px; gap:5px; }
+      .app-main { padding:12px 10px 32px; }
     }
   `]
 })
@@ -189,11 +212,9 @@ export class AppComponent implements OnInit {
   seasonService = inject(SeasonService);
   authService = inject(AuthService);
   private competitionService = inject(CompetitionService);
-
   private http = inject(HttpClient);
 
   ngOnInit() {
-    // Keep-alive: pinga il backend ogni 8 minuti per evitare il sleep su Render
     const ping = () => this.http.get('https://calciolive-backend.onrender.com/api/health').subscribe();
     ping();
     setInterval(ping, 8 * 60 * 1000);
