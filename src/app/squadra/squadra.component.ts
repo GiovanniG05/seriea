@@ -1,4 +1,5 @@
-import { Component, Input, Output, EventEmitter, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FootballService } from '../services/football.service';
 
@@ -42,6 +43,10 @@ import { FootballService } from '../services/football.service';
                 <a *ngIf="team.website" [href]="team.website" target="_blank" class="sq-website">
                   <i class="fa-solid fa-arrow-up-right-from-square"></i> Sito ufficiale
                 </a>
+                <button class="sq-fav-btn" (click)="toggleFav()" [class.active]="isFav">
+                  <i class="fa-solid fa-heart"></i>
+                  {{ isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti' }}
+                </button>
               </div>
             </div>
           </div>
@@ -205,6 +210,10 @@ import { FootballService } from '../services/football.service';
     .sq-comp-badge { font-size:.58rem; font-weight:700; background:rgba(255,255,255,.08); color:rgba(255,255,255,.5); padding:3px 8px; border-radius:5px; }
     .sq-website { font-size:.65rem; font-weight:700; color:rgba(255,255,255,.4); text-decoration:none; display:inline-flex; align-items:center; gap:5px; padding:5px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:8px; transition:all .15s; margin-top:8px; }
     .sq-website:hover { color:white; background:rgba(255,255,255,.1); }
+    .sq-fav-btn { display:inline-flex; align-items:center; gap:6px; font-size:.65rem; font-weight:700; color:rgba(255,255,255,.4); text-decoration:none; padding:5px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:8px; transition:all .15s; margin-top:6px; cursor:pointer; font-family:'Barlow',sans-serif; }
+    .sq-fav-btn:hover { color:white; background:rgba(255,255,255,.1); }
+    .sq-fav-btn.active { color:#ef4444; background:rgba(239,68,68,.1); border-color:rgba(239,68,68,.3); }
+    .sq-fav-btn i { font-size:.7rem; }
 
     /* TABS */
     .sq-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.07); padding:0 16px; }
@@ -278,6 +287,7 @@ import { FootballService } from '../services/football.service';
 })
 export class SquadraComponent implements OnInit {
   @Input() teamId!: number;
+  @Input() season?: number;
   @Output() close = new EventEmitter<void>();
 
   team: any = null;
@@ -285,7 +295,10 @@ export class SquadraComponent implements OnInit {
   activeTab: 'rosa' | 'staff' | 'partite' = 'rosa';
   recentMatches: any[] = [];
   loadingMatches = false;
-  matchSeasons = [2024, 2023];
+  get matchSeasons() {
+    const cur = new Date().getFullYear();
+    return [cur - 1, cur - 2];
+  }
   selectedMatchSeason: number | undefined = undefined;
 
   positions = [
@@ -299,9 +312,14 @@ export class SquadraComponent implements OnInit {
     return 'linear-gradient(135deg, rgba(59,130,246,.3), rgba(16,185,129,.15))';
   }
 
+  private http = inject(HttpClient);
+  private API = 'https://calciolive-backend.onrender.com/api';
+  isFav = false;
+
   constructor(private footballService: FootballService) {}
 
   ngOnInit() {
+    this.selectedMatchSeason = this.season;
     this.footballService.getTeam(this.teamId).subscribe({
       next: (data) => { this.team = data; this.loading = false; },
       error: () => { this.loading = false; }
@@ -343,7 +361,8 @@ export class SquadraComponent implements OnInit {
     this.activeTab = 'partite';
     if (this.recentMatches.length && !force) return;
     this.loadingMatches = true;
-    this.footballService.getTeamMatches(this.teamId, this.selectedMatchSeason).subscribe({
+    const s = this.selectedMatchSeason ?? this.season;
+    this.footballService.getTeamMatches(this.teamId, s).subscribe({
       next: (res: any) => {
         const all = res.matches ?? [];
         // Ordina per data decrescente (più recenti prima)
@@ -384,6 +403,37 @@ export class SquadraComponent implements OnInit {
     if (r === 'win') return 'V';
     if (r === 'loss') return 'S';
     return 'P';
+  }
+
+  loadFavStatus() {
+    const token = localStorage.getItem('cl_token');
+    if (!token) return;
+    this.http.get<any>(`${this.API}/favorite-teams`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: (res) => {
+        this.isFav = (res.teams ?? []).some((t: any) => t.team_id === this.teamId);
+      }
+    });
+  }
+
+  toggleFav() {
+    const token = localStorage.getItem('cl_token');
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}` };
+    if (this.isFav) {
+      this.http.delete(`${this.API}/favorite-teams/${this.teamId}`, { headers }).subscribe({
+        next: () => { this.isFav = false; }
+      });
+    } else {
+      this.http.post(`${this.API}/favorite-teams`, {
+        team_id: this.teamId,
+        team_name: this.team?.name,
+        team_crest: this.team?.crest
+      }, { headers }).subscribe({
+        next: () => { this.isFav = true; }
+      });
+    }
   }
 
   onOverlayClick(e: MouseEvent) { this.close.emit(); }

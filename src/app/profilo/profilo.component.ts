@@ -4,7 +4,34 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 
-type ProfiloTab = 'info' | 'modifica' | 'password';
+type ProfiloTab = 'info' | 'preferiti' | 'modifica' | 'password';
+
+const AVATAR_COLORS = [
+  { bg: 'linear-gradient(135deg,#3b82f6,#4ade80)', label: 'Verde' },
+  { bg: 'linear-gradient(135deg,#f59e0b,#ef4444)', label: 'Fuoco' },
+  { bg: 'linear-gradient(135deg,#8b5cf6,#ec4899)', label: 'Viola' },
+  { bg: 'linear-gradient(135deg,#06b6d4,#3b82f6)', label: 'Oceano' },
+  { bg: 'linear-gradient(135deg,#10b981,#059669)', label: 'Smeraldo' },
+  { bg: 'linear-gradient(135deg,#f97316,#eab308)', label: 'Tramonto' },
+];
+
+const COMPETITIONS = [
+  { code: 'SA',  name: 'Serie A',        emblem: 'https://crests.football-data.org/c111.png' },
+  { code: 'PL',  name: 'Premier League', emblem: 'https://crests.football-data.org/PL.png' },
+  { code: 'PD',  name: 'La Liga',        emblem: 'https://crests.football-data.org/PD.png' },
+  { code: 'BL1', name: 'Bundesliga',     emblem: 'https://crests.football-data.org/BL1.png' },
+  { code: 'FL1', name: 'Ligue 1',        emblem: 'https://crests.football-data.org/FL1.png' },
+  { code: 'CL',  name: 'Champions',      emblem: 'https://crests.football-data.org/CL.png' },
+];
+
+const BADGES = [
+  { id: 'serie_a',   label: 'Fan della Serie A',    icon: '🇮🇹', comp: 'SA' },
+  { id: 'premier',   label: 'Fan della Premier',    icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', comp: 'PL' },
+  { id: 'laliga',    label: 'Fan de La Liga',       icon: '🇪🇸', comp: 'PD' },
+  { id: 'bundesliga',label: 'Fan della Bundesliga', icon: '🇩🇪', comp: 'BL1' },
+  { id: 'ligue1',    label: 'Fan della Ligue 1',    icon: '🇫🇷', comp: 'FL1' },
+  { id: 'champion',  label: 'Esperto di Champions', icon: '🏆', comp: 'CL' },
+];
 
 @Component({
   selector: 'app-profilo',
@@ -19,7 +46,20 @@ type ProfiloTab = 'info' | 'modifica' | 'password';
 
         <!-- HEADER -->
         <div class="prof-header">
-          <div class="prof-avatar">{{ auth.user?.nome?.[0] }}{{ auth.user?.cognome?.[0] }}</div>
+          <div class="prof-avatar-wrap" (click)="showAvatarPicker=!showAvatarPicker">
+            <div class="prof-avatar" [style.background]="currentAvatarBg">
+              {{ auth.user?.nome?.[0] }}{{ auth.user?.cognome?.[0] }}
+            </div>
+            <div class="prof-avatar-edit"><i class="fa-solid fa-pen"></i></div>
+          </div>
+          <!-- Avatar color picker -->
+          <div class="prof-avatar-picker" *ngIf="showAvatarPicker">
+            <div class="prof-avatar-color"
+              *ngFor="let c of avatarColors"
+              [style.background]="c.bg"
+              (click)="selectAvatar(c.bg)">
+            </div>
+          </div>
           <div class="prof-header-info">
             <div class="prof-fullname">{{ auth.user?.nome }} {{ auth.user?.cognome }}</div>
             <div class="prof-username">{{ '@' + auth.user?.username }}</div>
@@ -32,10 +72,21 @@ type ProfiloTab = 'info' | 'modifica' | 'password';
           </div>
         </div>
 
+        <!-- BADGES -->
+        <div class="prof-badges">
+          <div class="prof-badge" *ngFor="let b of getBadges()" [title]="b.label">
+            <span class="prof-badge-icon">{{ b.icon }}</span>
+            <span class="prof-badge-label">{{ b.label }}</span>
+          </div>
+        </div>
+
         <!-- TABS -->
         <div class="prof-tabs">
           <button class="prof-tab" [class.active]="tab==='info'" (click)="tab='info'">
             <i class="fa-solid fa-circle-info"></i> Info
+          </button>
+          <button class="prof-tab" [class.active]="tab==='preferiti'" (click)="tab='preferiti'; loadFavorites()">
+            <i class="fa-solid fa-heart"></i> Preferiti
           </button>
           <button class="prof-tab" [class.active]="tab==='modifica'" (click)="tab='modifica'; initEdit()">
             <i class="fa-solid fa-pen"></i> Modifica
@@ -72,10 +123,36 @@ type ProfiloTab = 'info' | 'modifica' | 'password';
               <div class="prof-stat-val">{{ auth.user?.created_at | date:'dd MMM yyyy' }}</div>
             </div>
           </div>
-
           <button class="prof-logout-btn" (click)="doLogout()">
             <i class="fa-solid fa-right-from-bracket"></i> Esci dall'account
           </button>
+        </div>
+
+        <!-- PREFERITI -->
+        <div class="prof-body" *ngIf="tab==='preferiti'">
+          <div class="prof-section-title">Campionati preferiti</div>
+          <div class="prof-comps">
+            <div class="prof-comp-item" *ngFor="let c of competitions" (click)="toggleComp(c)">
+              <img [src]="c.emblem" class="prof-comp-emblem" (error)="onImgError($event)">
+              <span class="prof-comp-name">{{ c.name }}</span>
+              <i class="fa-solid fa-heart prof-comp-heart" [class.active]="isFavComp(c.code)"></i>
+            </div>
+          </div>
+
+          <div class="prof-section-title" style="margin-top:20px">Squadre preferite</div>
+          <div class="prof-fav-teams" *ngIf="favTeams.length">
+            <div class="prof-fav-team" *ngFor="let t of favTeams">
+              <img [src]="t.team_crest" class="prof-squad-crest" (error)="onImgError($event)">
+              <span>{{ t.team_name }}</span>
+              <button class="prof-fav-remove" (click)="removeFavTeam(t.team_id)">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+          <div class="prof-empty" *ngIf="!favTeams.length">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Nessuna squadra preferita — clicca su una squadra in classifica per aggiungerla</span>
+          </div>
         </div>
 
         <!-- MODIFICA -->
@@ -154,41 +231,65 @@ type ProfiloTab = 'info' | 'modifica' | 'password';
 
     .prof-overlay { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .2s ease; font-family:'Barlow',sans-serif; }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-
-    .prof-modal { background:#0d1117; border:1px solid rgba(255,255,255,.1); border-radius:20px; width:100%; max-width:480px; position:relative; animation:slideUp .2s ease; box-shadow:0 24px 64px rgba(0,0,0,.6); overflow:hidden; }
+    .prof-modal { background:#0d1117; border:1px solid rgba(255,255,255,.1); border-radius:20px; width:100%; max-width:480px; position:relative; animation:slideUp .2s ease; box-shadow:0 24px 64px rgba(0,0,0,.6); overflow:hidden; max-height:90vh; overflow-y:auto; }
     @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
-
-    .prof-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,.07); border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:.85rem; display:flex; align-items:center; justify-content:center; transition:all .15s; z-index:1; }
+    .prof-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,.07); border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:.85rem; display:flex; align-items:center; justify-content:center; transition:all .15s; z-index:10; }
     .prof-close:hover { background:rgba(255,255,255,.12); color:white; }
 
     /* HEADER */
-    .prof-header { background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(74,222,128,.08)); border-bottom:1px solid rgba(255,255,255,.07); padding:28px 24px 20px; display:flex; gap:16px; align-items:center; }
-    .prof-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#4ade80); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:900; flex-shrink:0; letter-spacing:-1px; }
+    .prof-header { background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(74,222,128,.08)); border-bottom:1px solid rgba(255,255,255,.07); padding:28px 24px 20px; display:flex; gap:16px; align-items:center; position:relative; }
+    .prof-avatar-wrap { position:relative; cursor:pointer; flex-shrink:0; }
+    .prof-avatar { width:64px; height:64px; border-radius:50%; color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:900; letter-spacing:-1px; transition:all .2s; }
+    .prof-avatar-edit { position:absolute; bottom:0; right:0; width:20px; height:20px; border-radius:50%; background:#4ade80; color:#070d1a; display:flex; align-items:center; justify-content:center; font-size:.55rem; }
+    .prof-avatar-picker { position:absolute; top:100%; left:0; z-index:50; background:#0d1117; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px; display:flex; gap:8px; flex-wrap:wrap; width:180px; box-shadow:0 8px 24px rgba(0,0,0,.4); margin-top:8px; }
+    .prof-avatar-color { width:32px; height:32px; border-radius:50%; cursor:pointer; transition:transform .15s; border:2px solid transparent; }
+    .prof-avatar-color:hover { transform:scale(1.15); border-color:white; }
     .prof-header-info { flex:1; min-width:0; padding-right:32px; }
     .prof-fullname { font-size:1.15rem; font-weight:900; color:white; margin-bottom:2px; }
     .prof-username { font-size:.78rem; font-weight:700; color:#4ade80; margin-bottom:2px; }
     .prof-email { font-size:.72rem; color:rgba(255,255,255,.4); margin-bottom:4px; }
     .prof-squadra { font-size:.72rem; color:rgba(255,255,255,.4); display:flex; align-items:center; gap:5px; }
-    .prof-squadra i { font-size:.65rem; color:rgba(255,255,255,.25); }
+
+    /* BADGES */
+    .prof-badges { display:flex; gap:8px; flex-wrap:wrap; padding:12px 24px; border-bottom:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.02); }
+    .prof-badge { display:flex; align-items:center; gap:5px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:4px 10px; }
+    .prof-badge-icon { font-size:.9rem; }
+    .prof-badge-label { font-size:.62rem; font-weight:700; color:rgba(255,255,255,.6); }
 
     /* TABS */
-    .prof-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.07); padding:0 16px; }
-    .prof-tab { padding:12px 16px; background:none; border:none; border-bottom:2px solid transparent; color:rgba(255,255,255,.4); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; font-family:'Barlow',sans-serif; margin-bottom:-1px; }
-    .prof-tab i { font-size:.72rem; }
+    .prof-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.07); padding:0 12px; overflow-x:auto; }
+    .prof-tab { padding:12px 12px; background:none; border:none; border-bottom:2px solid transparent; color:rgba(255,255,255,.4); font-size:.75rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .15s; font-family:'Barlow',sans-serif; margin-bottom:-1px; white-space:nowrap; flex-shrink:0; }
+    .prof-tab i { font-size:.7rem; }
     .prof-tab:hover { color:white; }
     .prof-tab.active { color:white; border-bottom-color:#4ade80; }
 
     /* BODY */
     .prof-body { padding:20px 24px; }
+    .prof-section-title { font-size:.62rem; font-weight:800; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
 
     /* INFO */
     .prof-stat-grid { display:flex; flex-direction:column; gap:12px; margin-bottom:24px; }
     .prof-stat { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:12px 16px; }
     .prof-stat-lbl { font-size:.62rem; font-weight:800; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:.8px; margin-bottom:4px; }
     .prof-stat-val { font-size:.88rem; font-weight:700; color:white; }
-
     .prof-logout-btn { width:100%; padding:12px; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:10px; color:#f87171; font-size:.85rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; }
-    .prof-logout-btn:hover { background:rgba(239,68,68,.15); border-color:rgba(239,68,68,.35); }
+    .prof-logout-btn:hover { background:rgba(239,68,68,.15); }
+
+    /* PREFERITI */
+    .prof-comps { display:flex; flex-direction:column; gap:8px; }
+    .prof-comp-item { display:flex; align-items:center; gap:12px; padding:10px 14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; cursor:pointer; transition:all .15s; }
+    .prof-comp-item:hover { background:rgba(255,255,255,.06); }
+    .prof-comp-emblem { width:24px; height:24px; object-fit:contain; }
+    .prof-comp-name { flex:1; font-size:.85rem; font-weight:700; color:white; }
+    .prof-comp-heart { color:rgba(255,255,255,.2); font-size:.9rem; transition:all .15s; }
+    .prof-comp-heart.active { color:#ef4444; }
+    .prof-fav-teams { display:flex; flex-direction:column; gap:8px; }
+    .prof-fav-team { display:flex; align-items:center; gap:10px; padding:10px 14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; }
+    .prof-fav-team span { flex:1; font-size:.85rem; font-weight:700; color:white; }
+    .prof-fav-remove { width:28px; height:28px; border-radius:6px; background:rgba(239,68,68,.1); border:none; color:#f87171; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.75rem; transition:all .15s; }
+    .prof-fav-remove:hover { background:rgba(239,68,68,.2); }
+    .prof-empty { text-align:center; padding:24px; color:rgba(255,255,255,.2); display:flex; flex-direction:column; align-items:center; gap:8px; font-size:.78rem; }
+    .prof-empty i { font-size:1.5rem; opacity:.3; }
 
     /* FORM */
     .prof-form { display:flex; flex-direction:column; gap:14px; }
@@ -214,12 +315,12 @@ type ProfiloTab = 'info' | 'modifica' | 'password';
 
     @media(max-width:480px) {
       .prof-overlay { padding:12px; }
-      .prof-modal { max-height:92vh; overflow-y:auto; }
+      .prof-modal { max-height:92vh; }
       .prof-header { padding:20px 16px 16px; }
       .prof-avatar { width:52px; height:52px; font-size:1.1rem; }
       .prof-body { padding:16px; }
       .prof-row { grid-template-columns:1fr; }
-      .prof-tab { padding:10px 12px; font-size:.72rem; }
+      .prof-tab { padding:10px 10px; font-size:.68rem; }
     }
   `]
 })
@@ -228,8 +329,12 @@ export class ProfiloComponent implements OnInit {
 
   auth = inject(AuthService);
   private http = inject(HttpClient);
-  tab: ProfiloTab = 'info';
 
+  tab: ProfiloTab = 'info';
+  showAvatarPicker = false;
+  currentAvatarBg = AVATAR_COLORS[0].bg;
+  readonly avatarColors = AVATAR_COLORS;
+  readonly competitions = COMPETITIONS;
   readonly leagues = [
     { code: 'SA', name: 'Serie A' },
     { code: 'PL', name: 'Premier League' },
@@ -238,6 +343,11 @@ export class ProfiloComponent implements OnInit {
     { code: 'FL1', name: 'Ligue 1' },
     { code: 'CL', name: 'Champions League' },
   ];
+
+  // Preferiti
+  favComps: string[] = [];
+  favTeams: any[] = [];
+  private API = 'https://calciolive-backend.onrender.com/api';
 
   // Edit
   editNome = '';
@@ -259,7 +369,61 @@ export class ProfiloComponent implements OnInit {
   pwdSuccess = false;
   pwdLoading = false;
 
-  ngOnInit() { this.initEdit(); }
+  ngOnInit() {
+    this.initEdit();
+    const saved = localStorage.getItem('cl_avatar_bg');
+    if (saved) this.currentAvatarBg = saved;
+  }
+
+  selectAvatar(bg: string) {
+    this.currentAvatarBg = bg;
+    localStorage.setItem('cl_avatar_bg', bg);
+    this.showAvatarPicker = false;
+  }
+
+  getBadges() {
+    return BADGES.filter(b => this.favComps.includes(b.comp));
+  }
+
+  loadFavorites() {
+    const token = this.auth.token;
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}` };
+    this.http.get<any>(`${this.API}/favorites`, { headers }).subscribe({
+      next: (res) => this.favComps = res.favorites?.map((f: any) => f.competition_code) ?? []
+    });
+    this.http.get<any>(`${this.API}/favorite-teams`, { headers }).subscribe({
+      next: (res) => this.favTeams = res.teams ?? []
+    });
+  }
+
+  isFavComp(code: string): boolean {
+    return this.favComps.includes(code);
+  }
+
+  toggleComp(c: any) {
+    const token = this.auth.token;
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}` };
+    if (this.isFavComp(c.code)) {
+      this.http.delete(`${this.API}/favorites/${c.code}`, { headers }).subscribe({
+        next: () => this.favComps = this.favComps.filter(x => x !== c.code)
+      });
+    } else {
+      this.http.post(`${this.API}/favorites`, { competition_code: c.code }, { headers }).subscribe({
+        next: () => this.favComps = [...this.favComps, c.code]
+      });
+    }
+  }
+
+  removeFavTeam(teamId: number) {
+    const token = this.auth.token;
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}` };
+    this.http.delete(`${this.API}/favorite-teams/${teamId}`, { headers }).subscribe({
+      next: () => this.favTeams = this.favTeams.filter(t => t.team_id !== teamId)
+    });
+  }
 
   initEdit() {
     this.editNome = this.auth.user?.nome ?? '';
@@ -283,9 +447,7 @@ export class ProfiloComponent implements OnInit {
     this.editTeams = [];
     if (!this.editLeague) return;
     this.editTeamsLoading = true;
-    this.http.get<any>(
-      `https://calciolive-backend.onrender.com/api/teams/${this.editLeague}`
-    ).subscribe({
+    this.http.get<any>(`https://calciolive-backend.onrender.com/api/teams/${this.editLeague}`).subscribe({
       next: (res) => {
         this.editTeams = (res.teams ?? [])
           .map((t: any) => ({ name: t.name, crest: t.crest ?? '' }))
