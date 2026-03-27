@@ -35,7 +35,7 @@ const LEAGUES = [
         </div>
 
         <!-- LOGIN -->
-        <div class="auth-form" *ngIf="tab==='login'">
+        <div class="auth-form" *ngIf="tab==='login' && !requires2fa">
           <div class="auth-field">
             <label>Email</label>
             <input type="email" [(ngModel)]="loginEmail" placeholder="la@tua.email" class="auth-input">
@@ -50,6 +50,26 @@ const LEAGUES = [
             {{ loading ? 'Accesso…' : 'Accedi' }}
           </button>
           <div class="auth-switch">Non hai un account? <button (click)="tab='register'">Registrati</button></div>
+        </div>
+
+        <!-- OTP STEP -->
+        <div class="auth-form" *ngIf="tab==='login' && requires2fa">
+          <div class="auth-otp-info">
+            <i class="fa-solid fa-envelope"></i>
+            Abbiamo inviato un codice a <strong>{{ loginEmail }}</strong>
+          </div>
+          <div class="auth-field">
+            <label>Codice di verifica</label>
+            <input type="text" [(ngModel)]="otpCode" placeholder="000000" class="auth-input auth-otp-input" maxlength="6" (keyup.enter)="doVerifyOtp()">
+          </div>
+          <div class="auth-error" *ngIf="error">{{ error }}</div>
+          <button class="auth-submit" (click)="doVerifyOtp()" [disabled]="loading">
+            <i class="fa-solid fa-circle-notch fa-spin" *ngIf="loading"></i>
+            {{ loading ? 'Verifica…' : 'Verifica codice' }}
+          </button>
+          <div class="auth-switch">
+            Non hai ricevuto il codice? <button (click)="requires2fa=false; error=''">Riprova</button>
+          </div>
         </div>
 
         <!-- REGISTER -->
@@ -143,6 +163,10 @@ const LEAGUES = [
     .auth-submit:disabled { opacity:.5; cursor:not-allowed; }
     .auth-switch { text-align:center; font-size:.75rem; color:rgba(255,255,255,.3); }
     .auth-switch button { background:none; border:none; color:#4ade80; font-weight:700; cursor:pointer; font-family:'Barlow',sans-serif; font-size:.75rem; }
+    .auth-otp-info { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:10px; padding:12px 16px; font-size:.82rem; color:rgba(255,255,255,.7); display:flex; align-items:center; gap:10px; }
+    .auth-otp-info i { color:#4ade80; }
+    .auth-otp-info strong { color:white; }
+    .auth-otp-input { font-size:1.5rem; font-weight:900; letter-spacing:8px; text-align:center; font-family:'JetBrains Mono',monospace; }
     .auth-team-preview { display:flex; align-items:center; gap:10px; padding:8px 14px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; }
     .auth-team-crest { width:28px; height:28px; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
     .auth-team-preview span { font-size:.85rem; font-weight:700; color:white; }
@@ -173,6 +197,8 @@ export class AuthModalComponent implements OnInit {
   // Login
   loginEmail = '';
   loginPassword = '';
+  requires2fa = false;
+  otpCode = '';
 
   // Register
   regNome = '';
@@ -218,8 +244,24 @@ export class AuthModalComponent implements OnInit {
     if (!this.loginEmail || !this.loginPassword) { this.error = 'Inserisci email e password'; return; }
     this.loading = true; this.error = '';
     this.authService.login(this.loginEmail, this.loginPassword).subscribe({
-      next: () => { this.loading = false; this.close.emit(); },
+      next: (res: any) => {
+        this.loading = false;
+        if (res.requires_2fa) {
+          this.requires2fa = true;
+        } else {
+          this.close.emit();
+        }
+      },
       error: (err) => { this.loading = false; this.error = err.error?.error ?? 'Errore durante il login'; }
+    });
+  }
+
+  doVerifyOtp() {
+    if (!this.otpCode || this.otpCode.length < 6) { this.error = 'Inserisci il codice a 6 cifre'; return; }
+    this.loading = true; this.error = '';
+    this.authService.verifyOtp(this.loginEmail, this.otpCode).subscribe({
+      next: () => { this.loading = false; this.close.emit(); },
+      error: (err) => { this.loading = false; this.error = err.error?.error ?? 'Codice non valido'; }
     });
   }
 

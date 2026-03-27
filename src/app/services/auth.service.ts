@@ -50,6 +50,12 @@ export class AuthService {
 
   login(email: string, password: string): Observable<any> {
     return this.http.post(`${this.API}/auth/login`, { email, password }).pipe(
+      tap((res: any) => { if (!res.requires_2fa) this.saveSession(res); })
+    );
+  }
+
+  verifyOtp(email: string, code: string): Observable<any> {
+    return this.http.post(`${this.API}/auth/verify-otp`, { email, code }).pipe(
       tap((res: any) => this.saveSession(res))
     );
   }
