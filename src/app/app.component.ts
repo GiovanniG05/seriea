@@ -11,13 +11,14 @@ import { SeasonService } from './services/season.service';
 import { CompetitionService } from './services/competition.service';
 import { AuthService } from './services/auth.service';
 import { ProfiloComponent } from './profilo/profilo.component';
+import { AdminComponent } from './admin/admin.component';
 
-type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
+type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote' | 'admin';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, HomeComponent, ClassificaComponent, RisultatiComponent, MarcatoriComponent, QuoteComponent, AuthModalComponent, ProfiloComponent],
+  imports: [CommonModule, HomeComponent, ClassificaComponent, RisultatiComponent, MarcatoriComponent, QuoteComponent, AuthModalComponent, ProfiloComponent, AdminComponent],
   template: `
     <div class="app-shell">
 
@@ -45,7 +46,7 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
           </div>
 
           <div class="app-nav-right">
-            <div class="app-season-wrap" *ngIf="view !== 'home' && view !== 'quote'">
+            <div class="app-season-wrap" *ngIf="view !== 'home' && view !== 'quote' && view !== 'admin'">
               <select class="app-season-select" (change)="onSeasonChange($event)">
                 <option [value]="''" [selected]="!seasonService.season">In corso</option>
                 <option *ngFor="let y of getSeasons()" [value]="y" [selected]="seasonService.season === y">
@@ -79,7 +80,10 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
                 <button class="app-user-profile" (click)="profiloOpen=true; userMenuOpen=false">
                   <i class="fa-solid fa-user"></i> Il mio profilo
                 </button>
-                <button class="app-user-logout" (click)="authService.logout(); userMenuOpen=false">
+                <button class="app-user-admin" *ngIf="authService.user?.role === 'admin'" (click)="view='admin'; userMenuOpen=false">
+                  <i class="fa-solid fa-shield-halved"></i> Pannello Admin
+                </button>
+                <button class="app-user-logout" (click)="logout(); userMenuOpen=false">
                   <i class="fa-solid fa-right-from-bracket"></i> Esci
                 </button>
               </div>
@@ -94,6 +98,7 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
         <app-risultati  *ngIf="view==='risultati'" />
         <app-marcatori  *ngIf="view==='marcatori'" />
         <app-quote      *ngIf="view==='quote'" />
+        <app-admin      *ngIf="view==='admin'" />
       </main>
 
       <app-profilo *ngIf="profiloOpen" (close)="profiloOpen=false"></app-profilo>
@@ -150,6 +155,8 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
     .app-user-squadra i { color:rgba(255,255,255,.25); font-size:.6rem; }
     .app-user-profile { width:100%; padding:8px 12px; background:transparent; border:none; border-radius:8px; color:rgba(255,255,255,.6); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; margin-bottom:2px; }
     .app-user-profile:hover { background:rgba(255,255,255,.07); color:white; }
+    .app-user-admin { width:100%; padding:8px 12px; background:transparent; border:none; border-radius:8px; color:#f97316; font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; margin-bottom:2px; }
+    .app-user-admin:hover { background:rgba(249,115,22,.1); }
     .app-user-logout { width:100%; padding:8px 12px; background:transparent; border:none; border-radius:8px; color:rgba(255,255,255,.5); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .15s; font-family:'Barlow',sans-serif; }
     .app-user-logout:hover { background:rgba(239,68,68,.1); color:#f87171; }
     .app-user-squad-crest { width:14px; height:14px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
@@ -157,39 +164,11 @@ type View = 'home' | 'classifica' | 'risultati' | 'marcatori' | 'quote';
     .app-main { max-width:1060px; margin:0 auto; padding:24px 20px 48px; }
 
     @media(max-width:700px) {
-      .app-nav-inner {
-        padding:0 10px;
-        height:auto;
-        flex-wrap:wrap;
-        padding-top:6px;
-        padding-bottom:0;
-        gap:6px;
-      }
+      .app-nav-inner { padding:0 10px; height:auto; flex-wrap:wrap; padding-top:6px; padding-bottom:0; gap:6px; }
       .app-brand { height:38px; }
       .app-nav-right { height:38px; margin-left:auto; gap:6px; }
-      .app-nav-links {
-        order:3;
-        width:100%;
-        border-top:1px solid rgba(255,255,255,.06);
-        display:flex;
-        justify-content:space-around;
-        gap:0;
-        padding:2px 0 4px;
-        flex:none;
-      }
-      .app-nav-btn {
-        flex:1;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        gap:2px;
-        padding:4px 2px;
-        font-size:.55rem;
-        letter-spacing:0;
-        text-transform:none;
-        border:none;
-        border-radius:6px;
-      }
+      .app-nav-links { order:3; width:100%; border-top:1px solid rgba(255,255,255,.06); display:flex; justify-content:space-around; gap:0; padding:2px 0 4px; flex:none; }
+      .app-nav-btn { flex:1; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px 2px; font-size:.55rem; letter-spacing:0; text-transform:none; border:none; border-radius:6px; }
       .app-nav-btn i { font-size:.9rem; }
       .app-nav-btn span { display:block; font-size:.55rem; }
       .app-nav-btn.active { background:rgba(74,222,128,.1); color:#4ade80; border:none; }
@@ -215,6 +194,20 @@ export class AppComponent implements OnInit {
   private http = inject(HttpClient);
 
   ngOnInit() {
+    // Sincronizza il ruolo utente dal backend se loggato
+    if (this.authService.isLoggedIn) {
+      console.log('🔄 Refreshing user data...');
+      this.authService.refreshUser().subscribe({
+        next: (res) => {
+          console.log('✅ User refreshed:', res.user);
+          console.log('Role:', res.user?.role);
+        },
+        error: (err) => {
+          console.log('❌ Profile refresh error:', err);
+        }
+      });
+    }
+
     const ping = () => this.http.get('https://calciolive-backend.onrender.com/api/health').subscribe();
     ping();
     setInterval(ping, 8 * 60 * 1000);
@@ -230,5 +223,10 @@ export class AppComponent implements OnInit {
   onSeasonChange(event: Event) {
     const val = (event.target as HTMLSelectElement).value;
     this.seasonService.select(val ? Number(val) : undefined);
+  }
+
+  logout() {
+    this.authService.logout();
+    this.view = 'home';
   }
 }
